@@ -1,0 +1,355 @@
+package config
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
+
+type ConfigManager struct {
+	Viper  *viper.Viper
+	logger *logrus.Logger
+}
+
+func NewConfigManager(logger *logrus.Logger) *ConfigManager {
+	v := viper.New()
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./config")
+	v.AddConfigPath(".")
+
+	// 设置环境变量支持
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// 设置默认值
+	setDefaults(v)
+
+	return &ConfigManager{
+		Viper:  v,
+		logger: logger,
+	}
+}
+
+// setDefaults 设置默认配置值
+func setDefaults(v *viper.Viper) {
+	// 服务器配置
+	v.SetDefault("server.port", 8080)
+	v.SetDefault("server.host", "0.0.0.0")
+	v.SetDefault("server.read_timeout", 30)
+	v.SetDefault("server.write_timeout", 30)
+
+	// 系统配置
+	v.SetDefault("system.check_interval", 24)        // 检查间隔（小时）
+	v.SetDefault("system.max_inactive_days", 7)      // 最大不活跃天数
+	v.SetDefault("system.enable_notification", true) // 启用通知
+	v.SetDefault("system.timezone", "Asia/Shanghai") // 时区
+
+	// 日志配置
+	v.SetDefault("log.level", "info")
+	v.SetDefault("log.format", "text")
+	v.SetDefault("log.output", "stdout")
+
+	// 邮件配置
+	v.SetDefault("email.smtp_host", "smtp.gmail.com")
+	v.SetDefault("email.smtp_port", 587)
+	v.SetDefault("email.username", "")
+	v.SetDefault("email.password", "")
+	v.SetDefault("email.from_email", "")
+	v.SetDefault("email.test_email", "")
+
+	// 部署配置
+	v.SetDefault("deployment.data_dir", "./data")
+	v.SetDefault("deployment.log_dir", "./logs")
+	v.SetDefault("deployment.backup_dir", "./backups")
+	v.SetDefault("deployment.posthumous_papers_file", "./data/posthumous_papers.md")
+}
+
+// LoadConfig 加载配置文件
+func (cm *ConfigManager) LoadConfig() error {
+	// 确保配置目录存在
+	if err := os.MkdirAll("./config", 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// 尝试读取配置文件
+	if err := cm.Viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// 配置文件不存在，创建默认配置
+			cm.logger.Info("Config file not found, creating default config")
+			if err := cm.createDefaultConfig(); err != nil {
+				return fmt.Errorf("failed to create default config: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to read config file: %w", err)
+		}
+	}
+
+	// 确保数据目录存在
+	dataDir := cm.Viper.GetString("deployment.data_dir")
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	// 确保日志目录存在
+	logDir := cm.Viper.GetString("deployment.log_dir")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	// 确保备份目录存在
+	backupDir := cm.Viper.GetString("deployment.backup_dir")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return fmt.Errorf("failed to create backup directory: %w", err)
+	}
+
+	cm.logger.Info("Configuration loaded successfully")
+	return nil
+}
+
+// createDefaultConfig 创建默认配置文件
+func (cm *ConfigManager) createDefaultConfig() error {
+	configPath := "./config/config.yaml"
+
+	// 创建默认配置内容
+	defaultConfig := `# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 30
+  write_timeout: 30
+
+
+# 系统配置
+system:
+  check_interval: 24        # 检查间隔（小时）
+  max_inactive_days: 7      # 最大不活跃天数
+  enable_notification: true  # 启用通知
+  timezone: "Asia/Shanghai"  # 时区
+
+# 日志配置
+log:
+  level: "info"
+  format: "text"
+  output: "stdout"
+
+# 邮件配置
+email:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  username: ""
+  password: ""
+  from_email: ""
+  test_email: ""
+
+# 部署配置
+deployment:
+  data_dir: "./data"
+  log_dir: "./logs"
+  backup_dir: "./backups"
+  posthumous_papers_file: "./data/posthumous_papers.md"
+`
+
+	// 写入配置文件
+	if err := os.WriteFile(configPath, []byte(defaultConfig), 0644); err != nil {
+		return fmt.Errorf("failed to write default config file: %w", err)
+	}
+
+	// 重新读取配置文件
+	return cm.Viper.ReadInConfig()
+}
+
+// GetServerConfig 获取服务器配置
+func (cm *ConfigManager) GetServerConfig() ServerConfig {
+	return ServerConfig{
+		Port:         cm.Viper.GetInt("server.port"),
+		Host:         cm.Viper.GetString("server.host"),
+		ReadTimeout:  cm.Viper.GetInt("server.read_timeout"),
+		WriteTimeout: cm.Viper.GetInt("server.write_timeout"),
+	}
+}
+
+// GetSystemConfig 获取系统配置
+func (cm *ConfigManager) GetSystemConfig() SystemConfig {
+	return SystemConfig{
+		CheckInterval:      cm.Viper.GetInt("system.check_interval"),
+		MaxInactiveDays:    cm.Viper.GetInt("system.max_inactive_days"),
+		EnableNotification: cm.Viper.GetBool("system.enable_notification"),
+		Timezone:           cm.Viper.GetString("system.timezone"),
+	}
+}
+
+// GetLogConfig 获取日志配置
+func (cm *ConfigManager) GetLogConfig() LogConfig {
+	return LogConfig{
+		Level:  cm.Viper.GetString("log.level"),
+		Format: cm.Viper.GetString("log.format"),
+		Output: cm.Viper.GetString("log.output"),
+	}
+}
+
+// GetDeploymentConfig 获取部署配置
+func (cm *ConfigManager) GetDeploymentConfig() DeploymentConfig {
+	return DeploymentConfig{
+		DataDir:              cm.Viper.GetString("deployment.data_dir"),
+		LogDir:               cm.Viper.GetString("deployment.log_dir"),
+		BackupDir:            cm.Viper.GetString("deployment.backup_dir"),
+		PosthumousPapersFile: cm.Viper.GetString("deployment.posthumous_papers_file"),
+	}
+}
+
+// UpdateConfig 更新配置
+func (cm *ConfigManager) UpdateConfig(key string, value any) error {
+	cm.Viper.Set(key, value)
+
+	// 保存到配置文件
+	configPath := cm.Viper.ConfigFileUsed()
+	if err := cm.Viper.WriteConfigAs(configPath); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	cm.logger.WithField("key", key).Info("Configuration updated")
+	return nil
+}
+
+// GetConfig 获取配置值
+func (cm *ConfigManager) GetConfig(key string) any {
+	return cm.Viper.Get(key)
+}
+
+// GetString 获取字符串配置
+func (cm *ConfigManager) GetString(key string) string {
+	return cm.Viper.GetString(key)
+}
+
+// GetInt 获取整数配置
+func (cm *ConfigManager) GetInt(key string) int {
+	return cm.Viper.GetInt(key)
+}
+
+// GetBool 获取布尔配置
+func (cm *ConfigManager) GetBool(key string) bool {
+	return cm.Viper.GetBool(key)
+}
+
+// SyncToDatabase 同步配置到数据库
+func (cm *ConfigManager) SyncToDatabase() error {
+	// 不再需要数据库同步
+	return nil
+}
+
+// ValidatePosthumousPapersFile 验证遗书文件是否存在
+func (cm *ConfigManager) ValidatePosthumousPapersFile() error {
+	posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
+	if posthumousPapersFile == "" {
+		return fmt.Errorf("posthumous papers file path is not configured")
+	}
+
+	if _, err := os.Stat(posthumousPapersFile); os.IsNotExist(err) {
+		return fmt.Errorf("posthumous papers file does not exist: %s", posthumousPapersFile)
+	}
+
+	return nil
+}
+
+// ValidateConfig 验证配置
+func (cm *ConfigManager) ValidateConfig() error {
+	// 验证端口
+	port := cm.Viper.GetInt("server.port")
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("invalid server port: %d", port)
+	}
+
+	// 验证SMTP端口
+	smtpPort := cm.Viper.GetInt("email.smtp_port")
+	if smtpPort < 1 || smtpPort > 65535 {
+		return fmt.Errorf("invalid SMTP port: %d", smtpPort)
+	}
+
+	// 验证检查间隔
+	checkInterval := cm.Viper.GetInt("system.check_interval")
+	if checkInterval < 1 {
+		return fmt.Errorf("invalid check interval: %d", checkInterval)
+	}
+
+	// 验证最大不活跃天数
+	maxInactiveDays := cm.Viper.GetInt("system.max_inactive_days")
+	if maxInactiveDays < 1 {
+		return fmt.Errorf("invalid max inactive days: %d", maxInactiveDays)
+	}
+
+	// 验证遗书文件路径
+	posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
+	if posthumousPapersFile == "" {
+		return fmt.Errorf("posthumous papers file path is required")
+	}
+
+	// 验证邮件配置（如果启用通知）
+	if cm.Viper.GetBool("system.enable_notification") {
+		if cm.Viper.GetString("email.smtp_host") == "" {
+			return fmt.Errorf("SMTP host is required when notification is enabled")
+		}
+		if cm.Viper.GetString("email.username") == "" {
+			return fmt.Errorf("email username is required when notification is enabled")
+		}
+		if cm.Viper.GetString("email.password") == "" {
+			return fmt.Errorf("email password is required when notification is enabled")
+		}
+		if cm.Viper.GetString("email.from_email") == "" {
+			return fmt.Errorf("from email is required when notification is enabled")
+		}
+	}
+
+	return nil
+}
+
+// GetConfigPath 获取配置文件路径
+func (cm *ConfigManager) GetConfigPath() string {
+	return cm.Viper.ConfigFileUsed()
+}
+
+// ReloadConfig 重新加载配置
+func (cm *ConfigManager) ReloadConfig() error {
+	if err := cm.Viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("failed to reload config: %w", err)
+	}
+
+	// 验证配置
+	if err := cm.ValidateConfig(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	cm.logger.Info("Configuration reloaded successfully")
+	return nil
+}
+
+// 配置结构体定义
+type ServerConfig struct {
+	Port         int    `mapstructure:"port"`
+	Host         string `mapstructure:"host"`
+	ReadTimeout  int    `mapstructure:"read_timeout"`
+	WriteTimeout int    `mapstructure:"write_timeout"`
+}
+
+type SystemConfig struct {
+	CheckInterval      int    `mapstructure:"check_interval"`
+	MaxInactiveDays    int    `mapstructure:"max_inactive_days"`
+	EnableNotification bool   `mapstructure:"enable_notification"`
+	Timezone           string `mapstructure:"timezone"`
+}
+
+type LogConfig struct {
+	Level  string `mapstructure:"level"`
+	Format string `mapstructure:"format"`
+	Output string `mapstructure:"output"`
+}
+
+type DeploymentConfig struct {
+	DataDir              string `mapstructure:"data_dir"`
+	LogDir               string `mapstructure:"log_dir"`
+	BackupDir            string `mapstructure:"backup_dir"`
+	PosthumousPapersFile string `mapstructure:"posthumous_papers_file"`
+}

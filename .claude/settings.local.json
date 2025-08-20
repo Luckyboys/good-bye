@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(go get:*)",
+      "Bash(go build:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(./good-bye:*)",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "Bash(make:*)",
+      "Bash(builds/debug/good-bye --version)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

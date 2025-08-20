@@ -1,0 +1,41 @@
+# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 30
+  write_timeout: 30
+
+# 数据库配置
+database:
+  path: "./data/good-bye.db"
+  max_connections: 25
+
+# 系统配置
+system:
+  check_interval: 24        # 检查间隔（小时）
+  max_inactive_days: 7      # 最大不活跃天数
+  enable_notification: false  # 启用通知
+  timezone: "Asia/Shanghai"  # 时区
+
+# 日志配置
+log:
+  level: "info"
+  format: "text"
+  output: "stdout"
+
+# 邮件配置
+email:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  username: ""
+  password: ""
+  from_email: ""
+  test_email: ""
+
+
+# 部署配置
+deployment:
+  data_dir: "./data"
+  log_dir: "./logs"
+  backup_dir: "./backups"
+  posthumous_papers_file: "./data/posthumous_papers.md"  # 遗书文件路径

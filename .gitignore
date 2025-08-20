@@ -1,0 +1,73 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+good-bye
+good-bye.exe
+
+# Build directories
+builds/
+build/
+
+# Logs
+logs/
+*.log
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Configuration files with sensitive data
+config/local.yaml
+config/production.yaml
+config/development.yaml
+
+# Data directories
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup directories
+backups/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Runtime files
+*.pid
+*.sock

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>遗书服务</h1>
+            <p>一个在长时间未活动后发送遗书的小工具</p>
+        </header>
+        
+        <nav>
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/checkin">签到</a></li>
+                <li><a href="/config">配置管理</a></li>
+                <li><a href="#" onclick="checkWillFile()">遗书文件</a></li>
+            </ul>
+        </nav>
+        
+        <main>
+            <div class="dashboard">
+                <div class="card">
+                    <h2>服务状态</h2>
+                    <div id="service-status">
+                        <p>加载中...</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>快速操作</h2>
+                    <div class="actions">
+                        <a href="/checkin" class="btn btn-primary">立即签到</a>
+                        <button onclick="sendTestEmail()" class="btn btn-secondary">发送测试邮件</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>系统信息</h2>
+                    <div id="system-info">
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 遗书服务 - 保持联系，让爱延续</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

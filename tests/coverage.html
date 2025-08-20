@@ -1,0 +1,1895 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/Luckyboys/good-bye/cmd/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/Luckyboys/good-bye/src/api/api_handler.go (0.0%)</option>
+				
+				<option value="file2">github.com/Luckyboys/good-bye/src/config/config_manager.go (0.0%)</option>
+				
+				<option value="file3">github.com/Luckyboys/good-bye/src/email/email_service.go (0.0%)</option>
+				
+				<option value="file4">github.com/Luckyboys/good-bye/src/state/state_manager.go (0.0%)</option>
+				
+				<option value="file5">github.com/Luckyboys/good-bye/src/web/router.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "flag"
+        "fmt"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/Luckyboys/good-bye/src/config"
+        "github.com/Luckyboys/good-bye/src/email"
+        "github.com/Luckyboys/good-bye/src/state"
+        "github.com/Luckyboys/good-bye/src/web"
+        "github.com/sirupsen/logrus"
+)
+
+func main() <span class="cov0" title="0">{
+        // 解析命令行参数
+        var (
+                configPath = flag.String("config", "", "配置文件路径")
+                port       = flag.Int("port", 0, "服务端口（覆盖配置文件）")
+                version    = flag.Bool("version", false, "显示版本信息")
+        )
+        flag.Parse()
+
+        if *version </span><span class="cov0" title="0">{
+                fmt.Println("Good-Bye Service v1.0.0")
+                os.Exit(0)
+        }</span>
+
+        // 初始化日志
+        <span class="cov0" title="0">logger := logrus.New()
+        logger.SetFormatter(&amp;logrus.JSONFormatter{})
+        logger.SetLevel(logrus.InfoLevel)
+
+        // 加载配置
+        configMgr := config.NewConfigManager(logger)
+        if *configPath != "" </span><span class="cov0" title="0">{
+                configMgr.Viper.SetConfigFile(*configPath)
+        }</span>
+
+        <span class="cov0" title="0">if err := configMgr.LoadConfig(); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to load configuration")
+        }</span>
+
+        // 验证配置
+        <span class="cov0" title="0">if err := configMgr.ValidateConfig(); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Invalid configuration")
+        }</span>
+
+        // 验证遗书文件是否存在
+        <span class="cov0" title="0">if err := configMgr.ValidatePosthumousPapersFile(); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Posthumous papers file validation failed")
+        }</span>
+
+        // 设置日志级别
+        <span class="cov0" title="0">if level := configMgr.GetString("log.level"); level != "" </span><span class="cov0" title="0">{
+                switch level </span>{
+                case "debug":<span class="cov0" title="0">
+                        logger.SetLevel(logrus.DebugLevel)</span>
+                case "info":<span class="cov0" title="0">
+                        logger.SetLevel(logrus.InfoLevel)</span>
+                case "warn":<span class="cov0" title="0">
+                        logger.SetLevel(logrus.WarnLevel)</span>
+                case "error":<span class="cov0" title="0">
+                        logger.SetLevel(logrus.ErrorLevel)</span>
+                }
+        }
+
+        // 获取服务器配置
+        <span class="cov0" title="0">serverConfig := configMgr.GetServerConfig()
+        if *port != 0 </span><span class="cov0" title="0">{
+                serverConfig.Port = *port
+        }</span>
+
+        // 不再需要数据库
+
+        // 初始化服务
+        <span class="cov0" title="0">dataDir := configMgr.GetString("deployment.data_dir")
+        posthumousPapersFile := configMgr.GetString("deployment.posthumous_papers_file")
+        stateMgr := state.NewStateManager(configMgr, logger, dataDir, posthumousPapersFile)
+        emailSvc := email.NewEmailService(configMgr, stateMgr, logger)
+
+        // 创建路由器
+        router := web.NewRouter(stateMgr, emailSvc, configMgr, logger)
+
+        // 启动时默认刷新签到时间
+        logger.Info("Performing startup status refresh...")
+        if err := stateMgr.UpdateStatus(); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Error("Failed to update status on startup")
+        }</span> else<span class="cov0" title="0"> {
+                logger.Info("Startup status refresh completed successfully")
+        }</span>
+
+        // 启动后台任务
+        <span class="cov0" title="0">go startBackgroundTasks(stateMgr, emailSvc, configMgr, logger)
+
+        // 启动HTTP服务器
+        addr := fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port)
+        logger.WithFields(logrus.Fields{
+                "host": serverConfig.Host,
+                "port": serverConfig.Port,
+        }).Info("Starting HTTP server")
+
+        // 优雅关闭处理
+        go func() </span><span class="cov0" title="0">{
+                if err := router.Run(addr); err != nil </span><span class="cov0" title="0">{
+                        logger.WithError(err).Fatal("Failed to start server")
+                }</span>
+        }()
+
+        // 等待中断信号
+        <span class="cov0" title="0">quit := make(chan os.Signal, 1)
+        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+        &lt;-quit
+
+        logger.Info("Shutting down server...")
+
+        // 执行清理工作
+        if err := cleanup(logger); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Error("Failed to cleanup")
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Server exited")</span>
+}
+
+// startBackgroundTasks 启动后台任务
+func startBackgroundTasks(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) <span class="cov0" title="0">{
+        // 等待服务启动完成
+        time.Sleep(5 * time.Second)
+
+        logger.Info("Starting background tasks")
+
+        // 状态检查任务
+        go func() </span><span class="cov0" title="0">{
+                ticker := time.NewTicker(1 * time.Hour) // 每小时检查一次
+                defer ticker.Stop()
+
+                for </span><span class="cov0" title="0">{
+                        select </span>{
+                        case &lt;-ticker.C:<span class="cov0" title="0">
+                                // 检查是否应该发送遗书
+                                shouldSend, err := stateMgr.ShouldSendWillMessage()
+                                if err != nil </span><span class="cov0" title="0">{
+                                        logger.WithError(err).Error("Failed to check if should send will message")
+                                        continue</span>
+                                }
+
+                                <span class="cov0" title="0">if shouldSend </span><span class="cov0" title="0">{
+                                        logger.Info("Sending will messages due to inactivity")
+                                        hasWill, err := stateMgr.GetUnsentWillMessages()
+                                        if err != nil </span><span class="cov0" title="0">{
+                                                logger.WithError(err).Error("Failed to check unsent will messages")
+                                                continue</span>
+                                        }
+
+                                        <span class="cov0" title="0">if hasWill </span><span class="cov0" title="0">{
+                                                result := emailSvc.SendWillMessage()
+                                                if result.Success </span><span class="cov0" title="0">{
+                                                        if err := stateMgr.MarkWillAsSent(); err != nil </span><span class="cov0" title="0">{
+                                                                logger.WithError(err).Error("Failed to mark will as sent")
+                                                        }</span>
+                                                        <span class="cov0" title="0">logger.Info("Will message sent successfully")</span>
+                                                } else<span class="cov0" title="0"> {
+                                                        logger.WithError(result.Error).Error("Failed to send will message")
+                                                }</span>
+                                        }
+                                }
+                        }
+                }
+        }()
+
+        // 邮件重试任务
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                ticker := time.NewTicker(30 * time.Minute) // 每30分钟重试一次
+                defer ticker.Stop()
+
+                for </span><span class="cov0" title="0">{
+                        select </span>{
+                        case &lt;-ticker.C:<span class="cov0" title="0">
+                                if err := emailSvc.RetryFailedEmails(); err != nil </span><span class="cov0" title="0">{
+                                        logger.WithError(err).Error("Failed to retry failed emails")
+                                }</span> else<span class="cov0" title="0"> {
+                                        logger.Info("Email retry task completed")
+                                }</span>
+                        }
+                }
+        }()
+
+        // 配置重载任务
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                ticker := time.NewTicker(5 * time.Minute) // 每5分钟检查一次配置变化
+                defer ticker.Stop()
+
+                for </span><span class="cov0" title="0">{
+                        select </span>{
+                        case &lt;-ticker.C:<span class="cov0" title="0">
+                                if err := configMgr.ReloadConfig(); err != nil </span><span class="cov0" title="0">{
+                                        logger.WithError(err).Error("Failed to reload config")
+                                }</span>
+                        }
+                }
+        }()
+}
+
+// cleanup 清理资源
+func cleanup(logger *logrus.Logger) error <span class="cov0" title="0">{
+        logger.Info("Performing cleanup...")
+        logger.Info("Cleanup completed")
+        return nil
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package api
+
+import (
+        "net/http"
+        "time"
+
+        "github.com/Luckyboys/good-bye/src/config"
+        "github.com/Luckyboys/good-bye/src/email"
+        "github.com/Luckyboys/good-bye/src/state"
+        "github.com/gin-gonic/gin"
+        "github.com/sirupsen/logrus"
+)
+
+type APIHandler struct {
+        stateMgr  *state.StateManager
+        emailSvc  *email.EmailService
+        configMgr *config.ConfigManager
+        logger    *logrus.Logger
+}
+
+func NewAPIHandler(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *APIHandler <span class="cov0" title="0">{
+        return &amp;APIHandler{
+                stateMgr:  stateMgr,
+                emailSvc:  emailSvc,
+                configMgr: configMgr,
+                logger:    logger,
+        }
+}</span>
+
+// APIResponse 标准API响应结构
+type APIResponse struct {
+        Success bool        `json:"success"`
+        Message string      `json:"message"`
+        Data    interface{} `json:"data,omitempty"`
+        Error   string      `json:"error,omitempty"`
+}
+
+// 健康检查
+func (h *APIHandler) HealthCheck(c *gin.Context) <span class="cov0" title="0">{
+        health := h.stateMgr.GetHealthStatus()
+
+        response := APIResponse{
+                Success: true,
+                Message: "Service is healthy",
+                Data:    health,
+        }
+
+        c.JSON(http.StatusOK, response)
+}</span>
+
+// 签到接口
+func (h *APIHandler) CheckIn(c *gin.Context) <span class="cov0" title="0">{
+        if err := h.stateMgr.UpdateStatus(); err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to update status")
+                response := APIResponse{
+                        Success: false,
+                        Message: "签到失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">h.stateMgr.LogStateChange("check_in", "User checked in successfully")
+
+        response := APIResponse{
+                Success: true,
+                Message: "签到成功",
+                Data: map[string]interface{}{
+                        "timestamp": time.Now().Format(time.RFC3339),
+                },
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 获取状态信息
+func (h *APIHandler) GetStatus(c *gin.Context) <span class="cov0" title="0">{
+        status, err := h.stateMgr.GetStatus()
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to get status")
+                response := APIResponse{
+                        Success: false,
+                        Message: "获取状态失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">inactiveDuration, err := h.stateMgr.GetInactiveDuration()
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to get inactive duration")
+                response := APIResponse{
+                        Success: false,
+                        Message: "获取不活跃时长失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">settings, err := h.stateMgr.GetSystemSettings()
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to get system settings")
+                response := APIResponse{
+                        Success: false,
+                        Message: "获取系统设置失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">data := map[string]interface{}{
+                "last_seen":         status.LastSeen.Format(time.RFC3339),
+                "inactive_duration": inactiveDuration.String(),
+                "is_inactive":       h.stateMgr.IsInactiveWithStatus(status, settings.MaxInactiveDays),
+                "max_inactive_days": settings.MaxInactiveDays,
+                "check_interval":    settings.CheckInterval,
+        }
+
+        response := APIResponse{
+                Success: true,
+                Message: "获取状态成功",
+                Data:    data,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 获取系统设置
+func (h *APIHandler) GetSystemSettings(c *gin.Context) <span class="cov0" title="0">{
+        settings, err := h.stateMgr.GetSystemSettings()
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to get system settings")
+                response := APIResponse{
+                        Success: false,
+                        Message: "获取系统设置失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">response := APIResponse{
+                Success: true,
+                Message: "获取系统设置成功",
+                Data:    settings,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 更新系统设置
+func (h *APIHandler) UpdateSystemSettings(c *gin.Context) <span class="cov0" title="0">{
+        var settings config.SystemConfig
+        if err := c.ShouldBindJSON(&amp;settings); err != nil </span><span class="cov0" title="0">{
+                response := APIResponse{
+                        Success: false,
+                        Message: "无效的请求数据",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusBadRequest, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if err := h.stateMgr.UpdateSystemSettings(&amp;settings); err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to update system settings")
+                response := APIResponse{
+                        Success: false,
+                        Message: "更新系统设置失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        // 同步到配置文件
+        <span class="cov0" title="0">h.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
+        h.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
+        h.configMgr.Viper.Set("system.enable_notification", settings.EnableNotification)
+        h.configMgr.Viper.Set("system.timezone", settings.Timezone)
+
+        configPath := h.configMgr.Viper.ConfigFileUsed()
+        if err := h.configMgr.Viper.WriteConfigAs(configPath); err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to save config file")
+        }</span>
+
+        <span class="cov0" title="0">h.stateMgr.LogStateChange("update_settings", "System settings updated")
+
+        response := APIResponse{
+                Success: true,
+                Message: "系统设置更新成功",
+                Data:    settings,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 获取遗书状态（从文件读取）
+func (h *APIHandler) GetWillMessages(c *gin.Context) <span class="cov0" title="0">{
+        // 检查遗书文件是否存在
+        content, err := h.stateMgr.ReadPosthumousPapers()
+        if err != nil </span><span class="cov0" title="0">{
+                response := APIResponse{
+                        Success: false,
+                        Message: "遗书文件不存在或无法读取",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusNotFound, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">data := map[string]interface{}{
+                "file_exists": true,
+                "content":     content,
+                "message":     "遗书内容已从文件读取",
+        }
+
+        response := APIResponse{
+                Success: true,
+                Message: "获取遗书状态成功",
+                Data:    data,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 发送测试邮件
+func (h *APIHandler) SendTestEmail(c *gin.Context) <span class="cov0" title="0">{
+        result := h.emailSvc.SendTestEmail()
+
+        if result.Success </span><span class="cov0" title="0">{
+                h.stateMgr.LogStateChange("send_test_email", "Test email sent successfully")
+                response := APIResponse{
+                        Success: true,
+                        Message: result.Message,
+                }
+                c.JSON(http.StatusOK, response)
+        }</span> else<span class="cov0" title="0"> {
+                h.logger.WithError(result.Error).Error("Failed to send test email")
+                response := APIResponse{
+                        Success: false,
+                        Message: result.Message,
+                        Error:   result.Error.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+        }</span>
+}
+
+// 获取邮件配置
+func (h *APIHandler) GetEmailConfig(c *gin.Context) <span class="cov0" title="0">{
+        emailConfig := map[string]interface{}{
+                "smtp_host":  h.configMgr.GetString("email.smtp_host"),
+                "smtp_port":  h.configMgr.GetInt("email.smtp_port"),
+                "username":   h.configMgr.GetString("email.username"),
+                "password":   h.configMgr.GetString("email.password"),
+                "from_email": h.configMgr.GetString("email.from_email"),
+                "test_email": h.configMgr.GetString("email.test_email"),
+        }
+
+        response := APIResponse{
+                Success: true,
+                Message: "获取邮件配置成功",
+                Data:    emailConfig,
+        }
+
+        c.JSON(http.StatusOK, response)
+}</span>
+
+// 更新邮件配置
+func (h *APIHandler) UpdateEmailConfig(c *gin.Context) <span class="cov0" title="0">{
+        var emailConfig map[string]interface{}
+        if err := c.ShouldBindJSON(&amp;emailConfig); err != nil </span><span class="cov0" title="0">{
+                response := APIResponse{
+                        Success: false,
+                        Message: "无效的请求数据",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusBadRequest, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">smtpHost, _ := emailConfig["smtp_host"].(string)
+        smtpPort, _ := emailConfig["smtp_port"].(int)
+        username, _ := emailConfig["username"].(string)
+        password, _ := emailConfig["password"].(string)
+        fromEmail, _ := emailConfig["from_email"].(string)
+        testEmail, _ := emailConfig["test_email"].(string)
+
+        if err := h.emailSvc.UpdateEmailConfig(smtpHost, smtpPort, username, password, fromEmail, testEmail); err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to update email config")
+                response := APIResponse{
+                        Success: false,
+                        Message: "更新邮件配置失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">h.stateMgr.LogStateChange("update_email_config", "Email configuration updated")
+
+        response := APIResponse{
+                Success: true,
+                Message: "邮件配置更新成功",
+                Data:    emailConfig,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+
+// 测试邮件配置
+func (h *APIHandler) TestEmailConfig(c *gin.Context) <span class="cov0" title="0">{
+        var emailConfig map[string]interface{}
+        if err := c.ShouldBindJSON(&amp;emailConfig); err != nil </span><span class="cov0" title="0">{
+                response := APIResponse{
+                        Success: false,
+                        Message: "无效的请求数据",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusBadRequest, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">smtpHost, _ := emailConfig["smtp_host"].(string)
+        smtpPort, _ := emailConfig["smtp_port"].(int)
+        username, _ := emailConfig["username"].(string)
+        password, _ := emailConfig["password"].(string)
+        fromEmail, _ := emailConfig["from_email"].(string)
+        testEmail, _ := emailConfig["test_email"].(string)
+
+        result := h.emailSvc.TestEmailConfig(smtpHost, smtpPort, username, password, fromEmail, testEmail)
+
+        if result.Success </span><span class="cov0" title="0">{
+                response := APIResponse{
+                        Success: true,
+                        Message: result.Message,
+                }
+                c.JSON(http.StatusOK, response)
+        }</span> else<span class="cov0" title="0"> {
+                response := APIResponse{
+                        Success: false,
+                        Message: result.Message,
+                        Error:   result.Error.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+        }</span>
+}
+
+// 获取统计信息
+func (h *APIHandler) GetStats(c *gin.Context) <span class="cov0" title="0">{
+        stats, err := h.stateMgr.GetStats()
+        if err != nil </span><span class="cov0" title="0">{
+                h.logger.WithError(err).Error("Failed to get stats")
+                response := APIResponse{
+                        Success: false,
+                        Message: "获取统计信息失败",
+                        Error:   err.Error(),
+                }
+                c.JSON(http.StatusInternalServerError, response)
+                return
+        }</span>
+
+        <span class="cov0" title="0">response := APIResponse{
+                Success: true,
+                Message: "获取统计信息成功",
+                Data:    stats,
+        }
+
+        c.JSON(http.StatusOK, response)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package config
+
+import (
+        "fmt"
+        "os"
+        "strings"
+
+        "github.com/sirupsen/logrus"
+        "github.com/spf13/viper"
+)
+
+type ConfigManager struct {
+        Viper  *viper.Viper
+        logger *logrus.Logger
+}
+
+func NewConfigManager(logger *logrus.Logger) *ConfigManager <span class="cov0" title="0">{
+        v := viper.New()
+        v.SetConfigName("config")
+        v.SetConfigType("yaml")
+        v.AddConfigPath("./config")
+        v.AddConfigPath(".")
+
+        // 设置环境变量支持
+        v.AutomaticEnv()
+        v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+        // 设置默认值
+        setDefaults(v)
+
+        return &amp;ConfigManager{
+                Viper:  v,
+                logger: logger,
+        }
+}</span>
+
+// setDefaults 设置默认配置值
+func setDefaults(v *viper.Viper) <span class="cov0" title="0">{
+        // 服务器配置
+        v.SetDefault("server.port", 8080)
+        v.SetDefault("server.host", "0.0.0.0")
+        v.SetDefault("server.read_timeout", 30)
+        v.SetDefault("server.write_timeout", 30)
+
+        // 系统配置
+        v.SetDefault("system.check_interval", 24)        // 检查间隔（小时）
+        v.SetDefault("system.max_inactive_days", 7)      // 最大不活跃天数
+        v.SetDefault("system.enable_notification", true) // 启用通知
+        v.SetDefault("system.timezone", "Asia/Shanghai") // 时区
+
+        // 日志配置
+        v.SetDefault("log.level", "info")
+        v.SetDefault("log.format", "text")
+        v.SetDefault("log.output", "stdout")
+
+        // 邮件配置
+        v.SetDefault("email.smtp_host", "smtp.gmail.com")
+        v.SetDefault("email.smtp_port", 587)
+        v.SetDefault("email.username", "")
+        v.SetDefault("email.password", "")
+        v.SetDefault("email.from_email", "")
+        v.SetDefault("email.test_email", "")
+
+        // 部署配置
+        v.SetDefault("deployment.data_dir", "./data")
+        v.SetDefault("deployment.log_dir", "./logs")
+        v.SetDefault("deployment.backup_dir", "./backups")
+        v.SetDefault("deployment.posthumous_papers_file", "./data/posthumous_papers.md")
+}</span>
+
+// LoadConfig 加载配置文件
+func (cm *ConfigManager) LoadConfig() error <span class="cov0" title="0">{
+        // 确保配置目录存在
+        if err := os.MkdirAll("./config", 0755); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create config directory: %w", err)
+        }</span>
+
+        // 尝试读取配置文件
+        <span class="cov0" title="0">if err := cm.Viper.ReadInConfig(); err != nil </span><span class="cov0" title="0">{
+                if _, ok := err.(viper.ConfigFileNotFoundError); ok </span><span class="cov0" title="0">{
+                        // 配置文件不存在，创建默认配置
+                        cm.logger.Info("Config file not found, creating default config")
+                        if err := cm.createDefaultConfig(); err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to create default config: %w", err)
+                        }</span>
+                } else<span class="cov0" title="0"> {
+                        return fmt.Errorf("failed to read config file: %w", err)
+                }</span>
+        }
+
+        // 确保数据目录存在
+        <span class="cov0" title="0">dataDir := cm.Viper.GetString("deployment.data_dir")
+        if err := os.MkdirAll(dataDir, 0755); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create data directory: %w", err)
+        }</span>
+
+        // 确保日志目录存在
+        <span class="cov0" title="0">logDir := cm.Viper.GetString("deployment.log_dir")
+        if err := os.MkdirAll(logDir, 0755); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create log directory: %w", err)
+        }</span>
+
+        // 确保备份目录存在
+        <span class="cov0" title="0">backupDir := cm.Viper.GetString("deployment.backup_dir")
+        if err := os.MkdirAll(backupDir, 0755); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create backup directory: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">cm.logger.Info("Configuration loaded successfully")
+        return nil</span>
+}
+
+// createDefaultConfig 创建默认配置文件
+func (cm *ConfigManager) createDefaultConfig() error <span class="cov0" title="0">{
+        configPath := "./config/config.yaml"
+
+        // 创建默认配置内容
+        defaultConfig := `# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 30
+  write_timeout: 30
+
+
+# 系统配置
+system:
+  check_interval: 24        # 检查间隔（小时）
+  max_inactive_days: 7      # 最大不活跃天数
+  enable_notification: true  # 启用通知
+  timezone: "Asia/Shanghai"  # 时区
+
+# 日志配置
+log:
+  level: "info"
+  format: "text"
+  output: "stdout"
+
+# 邮件配置
+email:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  username: ""
+  password: ""
+  from_email: ""
+  test_email: ""
+
+# 部署配置
+deployment:
+  data_dir: "./data"
+  log_dir: "./logs"
+  backup_dir: "./backups"
+  posthumous_papers_file: "./data/posthumous_papers.md"
+`
+
+        // 写入配置文件
+        if err := os.WriteFile(configPath, []byte(defaultConfig), 0644); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to write default config file: %w", err)
+        }</span>
+
+        // 重新读取配置文件
+        <span class="cov0" title="0">return cm.Viper.ReadInConfig()</span>
+}
+
+// GetServerConfig 获取服务器配置
+func (cm *ConfigManager) GetServerConfig() ServerConfig <span class="cov0" title="0">{
+        return ServerConfig{
+                Port:         cm.Viper.GetInt("server.port"),
+                Host:         cm.Viper.GetString("server.host"),
+                ReadTimeout:  cm.Viper.GetInt("server.read_timeout"),
+                WriteTimeout: cm.Viper.GetInt("server.write_timeout"),
+        }
+}</span>
+
+// GetSystemConfig 获取系统配置
+func (cm *ConfigManager) GetSystemConfig() SystemConfig <span class="cov0" title="0">{
+        return SystemConfig{
+                CheckInterval:      cm.Viper.GetInt("system.check_interval"),
+                MaxInactiveDays:    cm.Viper.GetInt("system.max_inactive_days"),
+                EnableNotification: cm.Viper.GetBool("system.enable_notification"),
+                Timezone:           cm.Viper.GetString("system.timezone"),
+        }
+}</span>
+
+// GetLogConfig 获取日志配置
+func (cm *ConfigManager) GetLogConfig() LogConfig <span class="cov0" title="0">{
+        return LogConfig{
+                Level:  cm.Viper.GetString("log.level"),
+                Format: cm.Viper.GetString("log.format"),
+                Output: cm.Viper.GetString("log.output"),
+        }
+}</span>
+
+// GetDeploymentConfig 获取部署配置
+func (cm *ConfigManager) GetDeploymentConfig() DeploymentConfig <span class="cov0" title="0">{
+        return DeploymentConfig{
+                DataDir:              cm.Viper.GetString("deployment.data_dir"),
+                LogDir:               cm.Viper.GetString("deployment.log_dir"),
+                BackupDir:            cm.Viper.GetString("deployment.backup_dir"),
+                PosthumousPapersFile: cm.Viper.GetString("deployment.posthumous_papers_file"),
+        }
+}</span>
+
+// UpdateConfig 更新配置
+func (cm *ConfigManager) UpdateConfig(key string, value any) error <span class="cov0" title="0">{
+        cm.Viper.Set(key, value)
+
+        // 保存到配置文件
+        configPath := cm.Viper.ConfigFileUsed()
+        if err := cm.Viper.WriteConfigAs(configPath); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to write config file: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">cm.logger.WithField("key", key).Info("Configuration updated")
+        return nil</span>
+}
+
+// GetConfig 获取配置值
+func (cm *ConfigManager) GetConfig(key string) any <span class="cov0" title="0">{
+        return cm.Viper.Get(key)
+}</span>
+
+// GetString 获取字符串配置
+func (cm *ConfigManager) GetString(key string) string <span class="cov0" title="0">{
+        return cm.Viper.GetString(key)
+}</span>
+
+// GetInt 获取整数配置
+func (cm *ConfigManager) GetInt(key string) int <span class="cov0" title="0">{
+        return cm.Viper.GetInt(key)
+}</span>
+
+// GetBool 获取布尔配置
+func (cm *ConfigManager) GetBool(key string) bool <span class="cov0" title="0">{
+        return cm.Viper.GetBool(key)
+}</span>
+
+// SyncToDatabase 同步配置到数据库
+func (cm *ConfigManager) SyncToDatabase() error <span class="cov0" title="0">{
+        // 不再需要数据库同步
+        return nil
+}</span>
+
+// ValidatePosthumousPapersFile 验证遗书文件是否存在
+func (cm *ConfigManager) ValidatePosthumousPapersFile() error <span class="cov0" title="0">{
+        posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
+        if posthumousPapersFile == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("posthumous papers file path is not configured")
+        }</span>
+
+        <span class="cov0" title="0">if _, err := os.Stat(posthumousPapersFile); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                return fmt.Errorf("posthumous papers file does not exist: %s", posthumousPapersFile)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+// ValidateConfig 验证配置
+func (cm *ConfigManager) ValidateConfig() error <span class="cov0" title="0">{
+        // 验证端口
+        port := cm.Viper.GetInt("server.port")
+        if port &lt; 1 || port &gt; 65535 </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid server port: %d", port)
+        }</span>
+
+        // 验证SMTP端口
+        <span class="cov0" title="0">smtpPort := cm.Viper.GetInt("email.smtp_port")
+        if smtpPort &lt; 1 || smtpPort &gt; 65535 </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid SMTP port: %d", smtpPort)
+        }</span>
+
+        // 验证检查间隔
+        <span class="cov0" title="0">checkInterval := cm.Viper.GetInt("system.check_interval")
+        if checkInterval &lt; 1 </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid check interval: %d", checkInterval)
+        }</span>
+
+        // 验证最大不活跃天数
+        <span class="cov0" title="0">maxInactiveDays := cm.Viper.GetInt("system.max_inactive_days")
+        if maxInactiveDays &lt; 1 </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid max inactive days: %d", maxInactiveDays)
+        }</span>
+
+        // 验证遗书文件路径
+        <span class="cov0" title="0">posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
+        if posthumousPapersFile == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("posthumous papers file path is required")
+        }</span>
+
+        // 验证邮件配置（如果启用通知）
+        <span class="cov0" title="0">if cm.Viper.GetBool("system.enable_notification") </span><span class="cov0" title="0">{
+                if cm.Viper.GetString("email.smtp_host") == "" </span><span class="cov0" title="0">{
+                        return fmt.Errorf("SMTP host is required when notification is enabled")
+                }</span>
+                <span class="cov0" title="0">if cm.Viper.GetString("email.username") == "" </span><span class="cov0" title="0">{
+                        return fmt.Errorf("email username is required when notification is enabled")
+                }</span>
+                <span class="cov0" title="0">if cm.Viper.GetString("email.password") == "" </span><span class="cov0" title="0">{
+                        return fmt.Errorf("email password is required when notification is enabled")
+                }</span>
+                <span class="cov0" title="0">if cm.Viper.GetString("email.from_email") == "" </span><span class="cov0" title="0">{
+                        return fmt.Errorf("from email is required when notification is enabled")
+                }</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+// GetConfigPath 获取配置文件路径
+func (cm *ConfigManager) GetConfigPath() string <span class="cov0" title="0">{
+        return cm.Viper.ConfigFileUsed()
+}</span>
+
+// ReloadConfig 重新加载配置
+func (cm *ConfigManager) ReloadConfig() error <span class="cov0" title="0">{
+        if err := cm.Viper.ReadInConfig(); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to reload config: %w", err)
+        }</span>
+
+        // 验证配置
+        <span class="cov0" title="0">if err := cm.ValidateConfig(); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid configuration: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">cm.logger.Info("Configuration reloaded successfully")
+        return nil</span>
+}
+
+// 配置结构体定义
+type ServerConfig struct {
+        Port         int    `mapstructure:"port"`
+        Host         string `mapstructure:"host"`
+        ReadTimeout  int    `mapstructure:"read_timeout"`
+        WriteTimeout int    `mapstructure:"write_timeout"`
+}
+
+type SystemConfig struct {
+        CheckInterval      int    `mapstructure:"check_interval"`
+        MaxInactiveDays    int    `mapstructure:"max_inactive_days"`
+        EnableNotification bool   `mapstructure:"enable_notification"`
+        Timezone           string `mapstructure:"timezone"`
+}
+
+type LogConfig struct {
+        Level  string `mapstructure:"level"`
+        Format string `mapstructure:"format"`
+        Output string `mapstructure:"output"`
+}
+
+type DeploymentConfig struct {
+        DataDir              string `mapstructure:"data_dir"`
+        LogDir               string `mapstructure:"log_dir"`
+        BackupDir            string `mapstructure:"backup_dir"`
+        PosthumousPapersFile string `mapstructure:"posthumous_papers_file"`
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package email
+
+import (
+        "crypto/tls"
+        "fmt"
+        "net/smtp"
+        "strings"
+        "time"
+
+        "github.com/Luckyboys/good-bye/src/config"
+        "github.com/Luckyboys/good-bye/src/state"
+        "github.com/sirupsen/logrus"
+)
+
+type EmailService struct {
+        config *config.ConfigManager
+        state  *state.StateManager
+        logger *logrus.Logger
+}
+
+func NewEmailService(cfg *config.ConfigManager, stateMgr *state.StateManager, logger *logrus.Logger) *EmailService <span class="cov0" title="0">{
+        return &amp;EmailService{
+                config: cfg,
+                state:  stateMgr,
+                logger: logger,
+        }
+}</span>
+
+// EmailMessage 邮件消息结构
+type EmailMessage struct {
+        To      string
+        Subject string
+        Content string
+        IsHTML  bool
+}
+
+// EmailResult 邮件发送结果
+type EmailResult struct {
+        Success bool
+        Message string
+        Error   error
+}
+
+// SendTestEmail 发送测试邮件
+func (es *EmailService) SendTestEmail() *EmailResult <span class="cov0" title="0">{
+        testEmail := es.config.GetString("email.test_email")
+        if testEmail == "" </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "测试邮箱地址未配置",
+                        Error:   fmt.Errorf("test email not configured"),
+                }
+        }</span>
+
+        <span class="cov0" title="0">message := EmailMessage{
+                To:      testEmail,
+                Subject: "遗书服务测试邮件",
+                Content: es.generateTestEmailContent(),
+                IsHTML:  true,
+        }
+
+        return es.sendEmail(message)</span>
+}
+
+// SendWillMessage 发送遗书邮件（从文件读取内容）
+func (es *EmailService) SendWillMessage() *EmailResult <span class="cov0" title="0">{
+        // 从文件读取遗书内容
+        content, err := es.state.ReadPosthumousPapers()
+        if err != nil </span><span class="cov0" title="0">{
+                es.logger.WithError(err).Error("Failed to read posthumous papers file")
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "读取遗书文件失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 获取收件人邮箱列表
+        <span class="cov0" title="0">recipients := es.getWillRecipients()
+        if len(recipients) == 0 </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "未配置收件人邮箱",
+                        Error:   fmt.Errorf("no recipients configured"),
+                }
+        }</span>
+
+        // 生成邮件内容
+        <span class="cov0" title="0">emailContent := es.generateWillEmailContentFromFile(content)
+
+        // 发送给所有收件人
+        var lastError error
+        successCount := 0
+
+        for _, recipient := range recipients </span><span class="cov0" title="0">{
+                message := EmailMessage{
+                        To:      recipient,
+                        Subject: "遗书通知 - 重要信息",
+                        Content: emailContent,
+                        IsHTML:  true,
+                }
+
+                result := es.sendEmail(message)
+                if result.Success </span><span class="cov0" title="0">{
+                        successCount++
+                }</span> else<span class="cov0" title="0"> {
+                        lastError = result.Error
+                        es.logger.WithError(result.Error).WithField("recipient", recipient).Error("Failed to send will email")
+                }</span>
+        }
+
+        <span class="cov0" title="0">if successCount == 0 </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "所有邮件发送失败",
+                        Error:   lastError,
+                }
+        }</span>
+
+        <span class="cov0" title="0">return &amp;EmailResult{
+                Success: true,
+                Message: fmt.Sprintf("成功发送 %d/%d 封邮件", successCount, len(recipients)),
+                Error:   nil,
+        }</span>
+}
+
+// sendEmail 发送邮件
+func (es *EmailService) sendEmail(message EmailMessage) *EmailResult <span class="cov0" title="0">{
+        return es.doSendEmail(message)
+}</span>
+
+// doSendEmail 实际发送邮件
+func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult <span class="cov0" title="0">{
+        // 验证邮件配置
+        if err := es.validateEmailConfig(); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "邮件配置验证失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 构建邮件内容
+        <span class="cov0" title="0">var content string
+        if message.IsHTML </span><span class="cov0" title="0">{
+                content = es.buildHTMLEmail(message.Subject, message.Content, message.To)
+        }</span> else<span class="cov0" title="0"> {
+                content = es.buildTextEmail(message.Subject, message.Content, message.To)
+        }</span>
+
+        // 设置SMTP认证
+        <span class="cov0" title="0">smtpHost := es.config.GetString("email.smtp_host")
+        smtpPort := es.config.GetInt("email.smtp_port")
+        username := es.config.GetString("email.username")
+        password := es.config.GetString("email.password")
+        fromEmail := es.config.GetString("email.from_email")
+
+        auth := smtp.PlainAuth("", username, password, smtpHost)
+
+        // 设置TLS配置
+        tlsConfig := &amp;tls.Config{
+                InsecureSkipVerify: false,
+                ServerName:         smtpHost,
+        }
+
+        // 连接SMTP服务器
+        addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
+        client, err := smtp.Dial(addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "连接SMTP服务器失败",
+                        Error:   err,
+                }
+        }</span>
+        <span class="cov0" title="0">defer client.Close()
+
+        // 启用TLS
+        if err := client.StartTLS(tlsConfig); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "启用TLS失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 认证
+        <span class="cov0" title="0">if err := client.Auth(auth); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "SMTP认证失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 设置发件人
+        <span class="cov0" title="0">if err := client.Mail(fromEmail); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "设置发件人失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 设置收件人
+        <span class="cov0" title="0">if err := client.Rcpt(message.To); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "设置收件人失败",
+                        Error:   err,
+                }
+        }</span>
+
+        // 发送邮件内容
+        <span class="cov0" title="0">wc, err := client.Data()
+        if err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "获取邮件写入器失败",
+                        Error:   err,
+                }
+        }</span>
+        <span class="cov0" title="0">defer wc.Close()
+
+        // 写入邮件内容
+        if _, err := fmt.Fprint(wc, content); err != nil </span><span class="cov0" title="0">{
+                return &amp;EmailResult{
+                        Success: false,
+                        Message: "写入邮件内容失败",
+                        Error:   err,
+                }
+        }</span>
+
+        <span class="cov0" title="0">es.logger.WithFields(logrus.Fields{
+                "to":      message.To,
+                "subject": message.Subject,
+        }).Info("Email sent successfully")
+
+        return &amp;EmailResult{
+                Success: true,
+                Message: "sent",
+                Error:   nil,
+        }</span>
+}
+
+// validateEmailConfig 验证邮件配置
+func (es *EmailService) validateEmailConfig() error <span class="cov0" title="0">{
+        smtpHost := es.config.GetString("email.smtp_host")
+        smtpPort := es.config.GetInt("email.smtp_port")
+        username := es.config.GetString("email.username")
+        password := es.config.GetString("email.password")
+        fromEmail := es.config.GetString("email.from_email")
+
+        if smtpHost == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("SMTP host is required")
+        }</span>
+        <span class="cov0" title="0">if smtpPort &lt;= 0 </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid SMTP port")
+        }</span>
+        <span class="cov0" title="0">if username == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("username is required")
+        }</span>
+        <span class="cov0" title="0">if password == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("password is required")
+        }</span>
+        <span class="cov0" title="0">if fromEmail == "" </span><span class="cov0" title="0">{
+                return fmt.Errorf("from email is required")
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+// buildHTMLEmail 构建HTML邮件
+func (es *EmailService) buildHTMLEmail(subject, content, toEmail string) string <span class="cov0" title="0">{
+        var builder strings.Builder
+
+        fromEmail := es.config.GetString("email.from_email")
+        builder.WriteString(fmt.Sprintf("From: %s\r\n", fromEmail))
+        builder.WriteString(fmt.Sprintf("To: %s\r\n", toEmail))
+        builder.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+        builder.WriteString("MIME-Version: 1.0\r\n")
+        builder.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+        builder.WriteString("\r\n")
+        builder.WriteString(content)
+
+        return builder.String()
+}</span>
+
+// buildTextEmail 构建纯文本邮件
+func (es *EmailService) buildTextEmail(subject, content, toEmail string) string <span class="cov0" title="0">{
+        var builder strings.Builder
+
+        fromEmail := es.config.GetString("email.from_email")
+        builder.WriteString(fmt.Sprintf("From: %s\r\n", fromEmail))
+        builder.WriteString(fmt.Sprintf("To: %s\r\n", toEmail))
+        builder.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+        builder.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
+        builder.WriteString("\r\n")
+        builder.WriteString(content)
+
+        return builder.String()
+}</span>
+
+// generateTestEmailContent 生成测试邮件内容
+func (es *EmailService) generateTestEmailContent() string <span class="cov0" title="0">{
+        return fmt.Sprintf(`
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;遗书服务测试邮件&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f4f4f4; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #fff; }
+        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;div class="header"&gt;
+            &lt;h1&gt;遗书服务测试邮件&lt;/h1&gt;
+        &lt;/div&gt;
+        &lt;div class="content"&gt;
+            &lt;p&gt;您好！&lt;/p&gt;
+            &lt;p&gt;这是一封来自遗书服务的测试邮件。&lt;/p&gt;
+            &lt;p&gt;如果您收到这封邮件，说明邮件服务配置正常。&lt;/p&gt;
+            &lt;p&gt;发送时间：%s&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class="footer"&gt;
+            &lt;p&gt;遗书服务 - 自动化邮件通知系统&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+`, time.Now().Format("2006-01-02 15:04:05"))
+}</span>
+
+// generateWillEmailContentFromFile 从文件内容生成遗书邮件内容
+func (es *EmailService) generateWillEmailContentFromFile(content string) string <span class="cov0" title="0">{
+        return fmt.Sprintf(`
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;遗书通知 - 重要信息&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ff6b6b; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; }
+        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
+        .will-content { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #ff6b6b; margin: 20px 0; }
+        .will-content pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;div class="header"&gt;
+            &lt;h1&gt;遗书通知&lt;/h1&gt;
+        &lt;/div&gt;
+        &lt;div class="content"&gt;
+            &lt;p&gt;尊敬的收件人：&lt;/p&gt;
+            &lt;p&gt;此邮件是由遗书服务自动发送的重要通知。&lt;/p&gt;
+            &lt;p&gt;由于长时间未检测到用户活动，系统认为需要发送以下重要信息。&lt;/p&gt;
+            
+            &lt;div class="will-content"&gt;
+                &lt;h2&gt;遗书内容&lt;/h2&gt;
+                &lt;pre&gt;%s&lt;/pre&gt;
+            &lt;/div&gt;
+            
+            &lt;p&gt;&lt;strong&gt;发送时间：&lt;/strong&gt;%s&lt;/p&gt;
+            
+            &lt;p style="color: #666; font-size: 14px;"&gt;
+                请注意：这是一封非常重要的通知邮件。如果您对此有任何疑问，请及时联系相关人员。
+            &lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class="footer"&gt;
+            &lt;p&gt;遗书服务 - 自动化邮件通知系统&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+`, content, time.Now().Format("2006-01-02 15:04:05"))
+}</span>
+
+// getWillRecipients 获取遗书收件人列表
+func (es *EmailService) getWillRecipients() []string <span class="cov0" title="0">{
+        recipients := make([]string, 0)
+
+        // 从配置中获取收件人
+        testEmail := es.config.GetString("email.test_email")
+        if testEmail != "" </span><span class="cov0" title="0">{
+                recipients = append(recipients, testEmail)
+        }</span>
+
+        <span class="cov0" title="0">return recipients</span>
+}
+
+// RetryFailedEmails 重试发送失败的邮件
+func (es *EmailService) RetryFailedEmails() error <span class="cov0" title="0">{
+        // 由于不再存储邮件记录，此方法不再需要
+        return nil
+}</span>
+
+// GetEmailStats 获取邮件统计信息
+func (es *EmailService) GetEmailStats() (map[string]any, error) <span class="cov0" title="0">{
+        // 由于不再存储邮件记录，返回空统计
+        stats := map[string]any{
+                "total_emails":   int64(0),
+                "sent_emails":    int64(0),
+                "failed_emails":  int64(0),
+                "pending_emails": int64(0),
+                "success_rate":   float64(0),
+        }
+
+        return stats, nil
+}</span>
+
+// UpdateEmailConfig 更新邮件配置
+func (es *EmailService) UpdateEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) error <span class="cov0" title="0">{
+        // 更新配置
+        es.config.Viper.Set("email.smtp_host", smtpHost)
+        es.config.Viper.Set("email.smtp_port", smtpPort)
+        es.config.Viper.Set("email.username", username)
+        es.config.Viper.Set("email.password", password)
+        es.config.Viper.Set("email.from_email", fromEmail)
+        es.config.Viper.Set("email.test_email", testEmail)
+
+        // 保存配置
+        configPath := es.config.Viper.ConfigFileUsed()
+        if err := es.config.Viper.WriteConfigAs(configPath); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to save email config: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">es.logger.Info("Email configuration updated successfully")
+        return nil</span>
+}
+
+// TestEmailConfig 测试邮件配置
+func (es *EmailService) TestEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) *EmailResult <span class="cov0" title="0">{
+        // 临时使用新的配置发送测试邮件
+        oldSMTPHost := es.config.GetString("email.smtp_host")
+        oldSMTPPort := es.config.GetInt("email.smtp_port")
+        oldUsername := es.config.GetString("email.username")
+        oldPassword := es.config.GetString("email.password")
+        oldFromEmail := es.config.GetString("email.from_email")
+        oldTestEmail := es.config.GetString("email.test_email")
+
+        // 临时设置新配置
+        es.config.Viper.Set("email.smtp_host", smtpHost)
+        es.config.Viper.Set("email.smtp_port", smtpPort)
+        es.config.Viper.Set("email.username", username)
+        es.config.Viper.Set("email.password", password)
+        es.config.Viper.Set("email.from_email", fromEmail)
+        es.config.Viper.Set("email.test_email", testEmail)
+
+        // 恢复旧配置
+        defer func() </span><span class="cov0" title="0">{
+                es.config.Viper.Set("email.smtp_host", oldSMTPHost)
+                es.config.Viper.Set("email.smtp_port", oldSMTPPort)
+                es.config.Viper.Set("email.username", oldUsername)
+                es.config.Viper.Set("email.password", oldPassword)
+                es.config.Viper.Set("email.from_email", oldFromEmail)
+                es.config.Viper.Set("email.test_email", oldTestEmail)
+        }</span>()
+
+        <span class="cov0" title="0">message := EmailMessage{
+                To:      testEmail,
+                Subject: "邮件配置测试",
+                Content: es.generateTestEmailContent(),
+                IsHTML:  true,
+        }
+
+        return es.sendEmail(message)</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package state
+
+import (
+        "fmt"
+        "os"
+        "sync"
+        "time"
+
+        "github.com/Luckyboys/good-bye/src/config"
+        "github.com/sirupsen/logrus"
+)
+
+type StateManager struct {
+        configMgr      *config.ConfigManager
+        logger         *logrus.Logger
+        dataDir        string
+        posthumousFile string
+        lastSeen       time.Time
+        mu             sync.RWMutex
+}
+
+func NewStateManager(configMgr *config.ConfigManager, logger *logrus.Logger, dataDir, posthumousFile string) *StateManager <span class="cov0" title="0">{
+        return &amp;StateManager{
+                configMgr:      configMgr,
+                logger:         logger,
+                dataDir:        dataDir,
+                posthumousFile: posthumousFile,
+                lastSeen:       time.Now(), // 初始化为当前时间
+        }
+}</span>
+
+// UpdateStatus 更新存活状态
+func (sm *StateManager) UpdateStatus() error <span class="cov0" title="0">{
+        sm.mu.Lock()
+        defer sm.mu.Unlock()
+        sm.lastSeen = time.Now()
+        return nil
+}</span>
+
+// Status 表示存活状态
+type Status struct {
+        LastSeen time.Time `json:"last_seen"`
+}
+
+// GetStatus 获取当前状态
+func (sm *StateManager) GetStatus() (*Status, error) <span class="cov0" title="0">{
+        sm.mu.RLock()
+        defer sm.mu.RUnlock()
+
+        return &amp;Status{
+                LastSeen: sm.lastSeen,
+        }, nil
+}</span>
+
+// IsInactive 检查是否处于不活跃状态
+func (sm *StateManager) IsInactive() (bool, error) <span class="cov0" title="0">{
+        systemConfig := sm.configMgr.GetSystemConfig()
+
+        sm.mu.RLock()
+        defer sm.mu.RUnlock()
+        now := time.Now()
+        duration := now.Sub(sm.lastSeen)
+        return duration.Hours() &gt; float64(systemConfig.MaxInactiveDays*24), nil
+}</span>
+
+// IsInactiveWithStatus 检查给定状态是否处于不活跃状态
+func (sm *StateManager) IsInactiveWithStatus(status *Status, maxDays int) bool <span class="cov0" title="0">{
+        now := time.Now()
+        duration := now.Sub(status.LastSeen)
+        return duration.Hours() &gt; float64(maxDays*24)
+}</span>
+
+// GetInactiveDuration 获取不活跃时长
+func (sm *StateManager) GetInactiveDuration() (time.Duration, error) <span class="cov0" title="0">{
+        sm.mu.RLock()
+        defer sm.mu.RUnlock()
+        return time.Since(sm.lastSeen), nil
+}</span>
+
+// GetLastSeenTime 获取最后活跃时间
+func (sm *StateManager) GetLastSeenTime() (time.Time, error) <span class="cov0" title="0">{
+        sm.mu.RLock()
+        defer sm.mu.RUnlock()
+        return sm.lastSeen, nil
+}</span>
+
+// GetSystemSettings 获取系统设置
+func (sm *StateManager) GetSystemSettings() (*config.SystemConfig, error) <span class="cov0" title="0">{
+        systemConfig := sm.configMgr.GetSystemConfig()
+        return &amp;systemConfig, nil
+}</span>
+
+// UpdateSystemSettings 更新系统设置
+func (sm *StateManager) UpdateSystemSettings(settings *config.SystemConfig) error <span class="cov0" title="0">{
+        // 更新配置文件
+        sm.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
+        sm.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
+        sm.configMgr.Viper.Set("system.enable_notification", settings.EnableNotification)
+        sm.configMgr.Viper.Set("system.timezone", settings.Timezone)
+
+        configPath := sm.configMgr.Viper.ConfigFileUsed()
+        return sm.configMgr.Viper.WriteConfigAs(configPath)
+}</span>
+
+// ReadPosthumousPapers 从文件读取遗书内容
+func (sm *StateManager) ReadPosthumousPapers() (string, error) <span class="cov0" title="0">{
+        // 检查文件是否存在
+        if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("posthumous papers file not found: %s", sm.posthumousFile)
+        }</span>
+
+        // 读取文件内容
+        <span class="cov0" title="0">content, err := os.ReadFile(sm.posthumousFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("failed to read posthumous papers file: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return string(content), nil</span>
+}
+
+// ShouldSendWillMessage 检查是否应该发送遗书消息
+func (sm *StateManager) ShouldSendWillMessage() (bool, error) <span class="cov0" title="0">{
+        systemConfig := sm.configMgr.GetSystemConfig()
+
+        // 如果通知功能被禁用，则不发送
+        if !systemConfig.EnableNotification </span><span class="cov0" title="0">{
+                return false, nil
+        }</span>
+
+        // 检查是否处于不活跃状态
+        <span class="cov0" title="0">isInactive, err := sm.IsInactive()
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+
+        // 检查遗书文件是否存在
+        <span class="cov0" title="0">if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                sm.logger.Warn("Posthumous papers file not found, will not send will message")
+                return false, nil
+        }</span>
+
+        <span class="cov0" title="0">return isInactive, nil</span>
+}
+
+// MarkWillAsSent 标记遗书为已发送
+func (sm *StateManager) MarkWillAsSent() error <span class="cov0" title="0">{
+        sm.logger.Info("Will message has been sent")
+        return nil
+}</span>
+
+// GetUnsentWillMessages 检查是否有未发送的遗书文件
+func (sm *StateManager) GetUnsentWillMessages() (bool, error) <span class="cov0" title="0">{
+        // 检查文件是否存在
+        if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                return false, fmt.Errorf("posthumous papers file not found")
+        }</span>
+        <span class="cov0" title="0">return true, nil</span>
+}
+
+// GetHealthStatus 获取健康状态
+func (sm *StateManager) GetHealthStatus() map[string]any <span class="cov0" title="0">{
+        systemConfig := sm.configMgr.GetSystemConfig()
+
+        sm.mu.RLock()
+        defer sm.mu.RUnlock()
+        inactiveDuration := time.Since(sm.lastSeen)
+        now := time.Now()
+        duration := now.Sub(sm.lastSeen)
+        isInactive := duration.Hours() &gt; float64(systemConfig.MaxInactiveDays*24)
+
+        health := map[string]any{
+                "status":              "healthy",
+                "last_seen":           sm.lastSeen.Format(time.RFC3339),
+                "inactive_duration":   inactiveDuration.String(),
+                "is_inactive":         isInactive,
+                "max_inactive_days":   systemConfig.MaxInactiveDays,
+                "check_interval":      systemConfig.CheckInterval,
+                "enable_notification": systemConfig.EnableNotification,
+        }
+
+        return health
+}</span>
+
+// LogStateChange 记录状态变化
+func (sm *StateManager) LogStateChange(action, details string) <span class="cov0" title="0">{
+        sm.logger.WithFields(logrus.Fields{
+                "action":  action,
+                "details": details,
+                "time":    time.Now().Format(time.RFC3339),
+        }).Info("State changed")
+}</span>
+
+// GetStats 获取统计信息
+func (sm *StateManager) GetStats() (map[string]any, error) <span class="cov0" title="0">{
+        systemConfig := sm.configMgr.GetSystemConfig()
+
+        // 检查遗书文件是否存在
+        hasPosthumousFile := false
+        if _, err := os.Stat(sm.posthumousFile); err == nil </span><span class="cov0" title="0">{
+                hasPosthumousFile = true
+        }</span>
+
+        <span class="cov0" title="0">var totalWills int64 = 0
+        var unsentWills int64 = 0
+
+        if hasPosthumousFile </span><span class="cov0" title="0">{
+                totalWills = 1
+                unsentWills = 1
+        }</span>
+
+        <span class="cov0" title="0">sm.mu.RLock()
+        defer sm.mu.RUnlock()
+        stats := map[string]any{
+                "last_seen":         sm.lastSeen.Format(time.RFC3339),
+                "inactive_duration": time.Since(sm.lastSeen).String(),
+                "system_settings":   systemConfig,
+                "will_stats": map[string]any{
+                        "total":  totalWills,
+                        "sent":   int64(0),
+                        "unsent": unsentWills,
+                },
+                "email_stats": map[string]any{
+                        "total":  int64(0),
+                        "sent":   int64(0),
+                        "failed": int64(0),
+                },
+        }
+
+        return stats, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package web
+
+import (
+        "github.com/Luckyboys/good-bye/src/api"
+        "github.com/Luckyboys/good-bye/src/config"
+        "github.com/Luckyboys/good-bye/src/email"
+        "github.com/Luckyboys/good-bye/src/state"
+        "github.com/gin-gonic/gin"
+        "github.com/sirupsen/logrus"
+)
+
+type Router struct {
+        engine     *gin.Engine
+        apiHandler *api.APIHandler
+        logger     *logrus.Logger
+}
+
+func NewRouter(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *Router <span class="cov0" title="0">{
+        // 设置Gin模式
+        if configMgr.GetString("log.level") == "debug" </span><span class="cov0" title="0">{
+                gin.SetMode(gin.DebugMode)
+        }</span> else<span class="cov0" title="0"> {
+                gin.SetMode(gin.ReleaseMode)
+        }</span>
+
+        <span class="cov0" title="0">engine := gin.New()
+
+        // 添加中间件
+        engine.Use(gin.Logger())
+        engine.Use(gin.Recovery())
+
+        // 创建CORS中间件
+        engine.Use(func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.Header("Access-Control-Allow-Origin", "*")
+                c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+                if c.Request.Method == "OPTIONS" </span><span class="cov0" title="0">{
+                        c.AbortWithStatus(204)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">c.Next()</span>
+        })
+
+        <span class="cov0" title="0">apiHandler := api.NewAPIHandler(stateMgr, emailSvc, configMgr, logger)
+
+        router := &amp;Router{
+                engine:     engine,
+                apiHandler: apiHandler,
+                logger:     logger,
+        }
+
+        router.setupRoutes()
+        return router</span>
+}
+
+func (r *Router) setupRoutes() <span class="cov0" title="0">{
+        // 健康检查
+        r.engine.GET("/health", r.apiHandler.HealthCheck)
+
+        // API路由组
+        v1 := r.engine.Group("/api/v1")
+        </span><span class="cov0" title="0">{
+                // 状态相关
+                v1.POST("/checkin", r.apiHandler.CheckIn)
+                v1.GET("/status", r.apiHandler.GetStatus)
+
+                // 系统设置
+                v1.GET("/settings", r.apiHandler.GetSystemSettings)
+                v1.PUT("/settings", r.apiHandler.UpdateSystemSettings)
+
+                // 遗书状态
+                v1.GET("/wills", r.apiHandler.GetWillMessages)
+
+                // 邮件相关
+                v1.POST("/email/test", r.apiHandler.SendTestEmail)
+                v1.GET("/email/config", r.apiHandler.GetEmailConfig)
+                v1.PUT("/email/config", r.apiHandler.UpdateEmailConfig)
+                v1.POST("/email/config/test", r.apiHandler.TestEmailConfig)
+
+                // 统计信息
+                v1.GET("/stats", r.apiHandler.GetStats)
+        }</span>
+
+        // 静态文件服务
+        <span class="cov0" title="0">r.engine.Static("/static", "./static")
+        r.engine.LoadHTMLGlob("templates/*.html")
+
+        // 首页
+        r.engine.GET("/", func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.HTML(200, "index.html", gin.H{
+                        "title": "遗书服务",
+                })
+        }</span>)
+
+        // 签到页面
+        <span class="cov0" title="0">r.engine.GET("/checkin", func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.HTML(200, "checkin.html", gin.H{
+                        "title": "签到",
+                })
+        }</span>)
+
+        // 配置页面
+        <span class="cov0" title="0">r.engine.GET("/config", func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.HTML(200, "config.html", gin.H{
+                        "title": "配置管理",
+                })
+        }</span>)
+
+        // 404处理
+        <span class="cov0" title="0">r.engine.NoRoute(func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.JSON(404, gin.H{
+                        "error": "页面不存在",
+                })
+        }</span>)
+}
+
+func (r *Router) Run(addr string) error <span class="cov0" title="0">{
+        r.logger.Infof("Starting server on %s", addr)
+        return r.engine.Run(addr)
+}</span>
+
+func (r *Router) GetEngine() *gin.Engine <span class="cov0" title="0">{
+        return r.engine
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
