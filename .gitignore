@@ -71,3 +71,6 @@ temp/
 # Runtime files
 *.pid
 *.sock
+
+# tests files
+tests/

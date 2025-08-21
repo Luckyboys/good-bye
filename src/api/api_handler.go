@@ -251,14 +251,7 @@ func (h *APIHandler) SendTestEmail(c *gin.Context) {
 
 // 获取邮件配置
 func (h *APIHandler) GetEmailConfig(c *gin.Context) {
-	emailConfig := map[string]interface{}{
-		"smtp_host":  h.configMgr.GetString("email.smtp_host"),
-		"smtp_port":  h.configMgr.GetInt("email.smtp_port"),
-		"username":   h.configMgr.GetString("email.username"),
-		"password":   h.configMgr.GetString("email.password"),
-		"from_email": h.configMgr.GetString("email.from_email"),
-		"test_email": h.configMgr.GetString("email.test_email"),
-	}
+	emailConfig := h.configMgr.GetEmailConfig()
 
 	response := APIResponse{
 		Success: true,

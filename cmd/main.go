@@ -6,10 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/Luckyboys/good-bye/src/config"
 	"github.com/Luckyboys/good-bye/src/email"
+	"github.com/Luckyboys/good-bye/src/scheduler"
 	"github.com/Luckyboys/good-bye/src/state"
 	"github.com/Luckyboys/good-bye/src/web"
 	"github.com/sirupsen/logrus"
@@ -93,8 +93,12 @@ func main() {
 		logger.Info("Startup status refresh completed successfully")
 	}
 
+	// 创建退出信号通道
+	exitChan := make(chan struct{})
+	
 	// 启动后台任务
-	go startBackgroundTasks(stateMgr, emailSvc, configMgr, logger)
+	taskScheduler := scheduler.NewTaskScheduler(stateMgr, emailSvc, configMgr, logger, exitChan)
+	go taskScheduler.Start()
 
 	// 启动HTTP服务器
 	addr := fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port)
@@ -118,95 +122,20 @@ func main() {
 	logger.Info("Shutting down server...")
 
 	// 执行清理工作
-	if err := cleanup(logger); err != nil {
+	if err := cleanup(logger, exitChan); err != nil {
 		logger.WithError(err).Error("Failed to cleanup")
 	}
 
 	logger.Info("Server exited")
 }
 
-// startBackgroundTasks 启动后台任务
-func startBackgroundTasks(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) {
-	// 等待服务启动完成
-	time.Sleep(5 * time.Second)
-
-	logger.Info("Starting background tasks")
-
-	// 状态检查任务
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour) // 每小时检查一次
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				// 检查是否应该发送遗书
-				shouldSend, err := stateMgr.ShouldSendWillMessage()
-				if err != nil {
-					logger.WithError(err).Error("Failed to check if should send will message")
-					continue
-				}
-
-				if shouldSend {
-					logger.Info("Sending will messages due to inactivity")
-					hasWill, err := stateMgr.GetUnsentWillMessages()
-					if err != nil {
-						logger.WithError(err).Error("Failed to check unsent will messages")
-						continue
-					}
-
-					if hasWill {
-						result := emailSvc.SendWillMessage()
-						if result.Success {
-							if err := stateMgr.MarkWillAsSent(); err != nil {
-								logger.WithError(err).Error("Failed to mark will as sent")
-							}
-							logger.Info("Will message sent successfully")
-						} else {
-							logger.WithError(result.Error).Error("Failed to send will message")
-						}
-					}
-				}
-			}
-		}
-	}()
-
-	// 邮件重试任务
-	go func() {
-		ticker := time.NewTicker(30 * time.Minute) // 每30分钟重试一次
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				if err := emailSvc.RetryFailedEmails(); err != nil {
-					logger.WithError(err).Error("Failed to retry failed emails")
-				} else {
-					logger.Info("Email retry task completed")
-				}
-			}
-		}
-	}()
-
-	// 配置重载任务
-	go func() {
-		ticker := time.NewTicker(5 * time.Minute) // 每5分钟检查一次配置变化
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				if err := configMgr.ReloadConfig(); err != nil {
-					logger.WithError(err).Error("Failed to reload config")
-				}
-			}
-		}
-	}()
-}
-
 // cleanup 清理资源
-func cleanup(logger *logrus.Logger) error {
+func cleanup(logger *logrus.Logger, exitChan chan struct{}) error {
 	logger.Info("Performing cleanup...")
+	
+	// 关闭退出通道，通知所有后台任务退出
+	close(exitChan)
+	
 	logger.Info("Cleanup completed")
 	return nil
 }

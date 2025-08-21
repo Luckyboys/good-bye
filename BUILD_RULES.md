@@ -112,7 +112,6 @@ go build -ldflags="-s -w" -o builds/release/good-bye cmd/main.go
 deployment:
   log_dir: "./logs"     # 日志文件目录
   data_dir: "./data"     # 数据文件目录
-  backup_dir: "./backups" # 备份目录
 ```
 
 ## Claude Code 规则

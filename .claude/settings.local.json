@@ -9,7 +9,8 @@
       "Bash(curl:*)",
       "Bash(timeout:*)",
       "Bash(make:*)",
-      "Bash(builds/debug/good-bye --version)"
+      "Bash(builds/debug/good-bye --version)",
+      "Bash(./builds/debug/good-bye:*)"
     ],
     "deny": [],
     "ask": []

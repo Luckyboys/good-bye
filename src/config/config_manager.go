@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -43,10 +44,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.write_timeout", 30)
 
 	// 系统配置
-	v.SetDefault("system.check_interval", 24)        // 检查间隔（小时）
-	v.SetDefault("system.max_inactive_days", 7)      // 最大不活跃天数
-	v.SetDefault("system.enable_notification", true) // 启用通知
-	v.SetDefault("system.timezone", "Asia/Shanghai") // 时区
+	v.SetDefault("system.check_interval", time.Hour*24)
+	v.SetDefault("system.max_inactive_days", 7)
+	v.SetDefault("system.enable_notification", false)
+	v.SetDefault("system.timezone", "Asia/Shanghai")
 
 	// 日志配置
 	v.SetDefault("log.level", "info")
@@ -60,11 +61,15 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("email.password", "")
 	v.SetDefault("email.from_email", "")
 	v.SetDefault("email.test_email", "")
+	
+	// 默认收件人列表
+	v.SetDefault("email.recipients", []map[string]string{
+		{"email": "", "name": ""},
+	})
 
 	// 部署配置
 	v.SetDefault("deployment.data_dir", "./data")
 	v.SetDefault("deployment.log_dir", "./logs")
-	v.SetDefault("deployment.backup_dir", "./backups")
 	v.SetDefault("deployment.posthumous_papers_file", "./data/posthumous_papers.md")
 }
 
@@ -100,12 +105,7 @@ func (cm *ConfigManager) LoadConfig() error {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	// 确保备份目录存在
-	backupDir := cm.Viper.GetString("deployment.backup_dir")
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return fmt.Errorf("failed to create backup directory: %w", err)
-	}
-
+	
 	cm.logger.Info("Configuration loaded successfully")
 	return nil
 }
@@ -122,12 +122,11 @@ server:
   read_timeout: 30
   write_timeout: 30
 
-
 # 系统配置
 system:
-  check_interval: 24        # 检查间隔（小时）
+  check_interval: "24h"     # 检查间隔（时间间隔格式）
   max_inactive_days: 7      # 最大不活跃天数
-  enable_notification: true  # 启用通知
+  enable_notification: false  # 启用通知
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置
@@ -144,13 +143,17 @@ email:
   password: ""
   from_email: ""
   test_email: ""
+  
+  # 收件人列表
+  recipients:
+    - email: ""
+      name: ""
 
 # 部署配置
 deployment:
   data_dir: "./data"
   log_dir: "./logs"
-  backup_dir: "./backups"
-  posthumous_papers_file: "./data/posthumous_papers.md"
+  posthumous_papers_file: "./data/posthumous_papers.md"  # 遗书文件路径
 `
 
 	// 写入配置文件
@@ -175,7 +178,7 @@ func (cm *ConfigManager) GetServerConfig() ServerConfig {
 // GetSystemConfig 获取系统配置
 func (cm *ConfigManager) GetSystemConfig() SystemConfig {
 	return SystemConfig{
-		CheckInterval:      cm.Viper.GetInt("system.check_interval"),
+		CheckInterval:      cm.Viper.GetDuration("system.check_interval"),
 		MaxInactiveDays:    cm.Viper.GetInt("system.max_inactive_days"),
 		EnableNotification: cm.Viper.GetBool("system.enable_notification"),
 		Timezone:           cm.Viper.GetString("system.timezone"),
@@ -196,8 +199,28 @@ func (cm *ConfigManager) GetDeploymentConfig() DeploymentConfig {
 	return DeploymentConfig{
 		DataDir:              cm.Viper.GetString("deployment.data_dir"),
 		LogDir:               cm.Viper.GetString("deployment.log_dir"),
-		BackupDir:            cm.Viper.GetString("deployment.backup_dir"),
 		PosthumousPapersFile: cm.Viper.GetString("deployment.posthumous_papers_file"),
+	}
+}
+
+// GetEmailConfig 获取邮件配置
+func (cm *ConfigManager) GetEmailConfig() EmailConfig {
+	var recipients []EmailRecipient
+	if err := cm.Viper.UnmarshalKey("email.recipients", &recipients); err != nil {
+		cm.logger.WithError(err).Warn("Failed to unmarshal email recipients, using empty list")
+		recipients = []EmailRecipient{}
+	}
+
+	cm.logger.WithField("recipients_count", len(recipients)).Info("Email recipients loaded")
+
+	return EmailConfig{
+		SMTPHost:   cm.Viper.GetString("email.smtp_host"),
+		SMTPPort:   cm.Viper.GetInt("email.smtp_port"),
+		Username:   cm.Viper.GetString("email.username"),
+		Password:   cm.Viper.GetString("email.password"),
+		FromEmail:  cm.Viper.GetString("email.from_email"),
+		TestEmail:  cm.Viper.GetString("email.test_email"),
+		Recipients: recipients,
 	}
 }
 
@@ -270,9 +293,9 @@ func (cm *ConfigManager) ValidateConfig() error {
 	}
 
 	// 验证检查间隔
-	checkInterval := cm.Viper.GetInt("system.check_interval")
-	if checkInterval < 1 {
-		return fmt.Errorf("invalid check interval: %d", checkInterval)
+	checkInterval := cm.Viper.GetDuration("system.check_interval")
+	if checkInterval < time.Minute {
+		return fmt.Errorf("invalid check interval: %v", checkInterval)
 	}
 
 	// 验证最大不活跃天数
@@ -335,10 +358,10 @@ type ServerConfig struct {
 }
 
 type SystemConfig struct {
-	CheckInterval      int    `mapstructure:"check_interval"`
-	MaxInactiveDays    int    `mapstructure:"max_inactive_days"`
-	EnableNotification bool   `mapstructure:"enable_notification"`
-	Timezone           string `mapstructure:"timezone"`
+	CheckInterval      time.Duration `mapstructure:"check_interval"`
+	MaxInactiveDays    int           `mapstructure:"max_inactive_days"`
+	EnableNotification bool          `mapstructure:"enable_notification"`
+	Timezone           string        `mapstructure:"timezone"`
 }
 
 type LogConfig struct {
@@ -350,6 +373,21 @@ type LogConfig struct {
 type DeploymentConfig struct {
 	DataDir              string `mapstructure:"data_dir"`
 	LogDir               string `mapstructure:"log_dir"`
-	BackupDir            string `mapstructure:"backup_dir"`
 	PosthumousPapersFile string `mapstructure:"posthumous_papers_file"`
 }
+
+type EmailRecipient struct {
+	Email string `mapstructure:"email"`
+	Name  string `mapstructure:"name"`
+}
+
+type EmailConfig struct {
+	SMTPHost    string           `mapstructure:"smtp_host"`
+	SMTPPort    int              `mapstructure:"smtp_port"`
+	Username    string           `mapstructure:"username"`
+	Password    string           `mapstructure:"password"`
+	FromEmail   string           `mapstructure:"from_email"`
+	TestEmail   string           `mapstructure:"test_email"`
+	Recipients  []EmailRecipient `mapstructure:"recipients"`
+}
+
