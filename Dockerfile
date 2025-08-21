@@ -23,10 +23,14 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
 # 设置工作目录
-WORKDIR /root/
+WORKDIR /app/
 
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/good-bye .
+
+# 拷贝静态资源文件
+COPY templates /app/
+COPY static /app/
 
 # 创建配置文件目录
 RUN mkdir -p ./config ./data ./logs
