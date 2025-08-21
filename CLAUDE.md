@@ -267,3 +267,32 @@ A: 所有日志文件必须存储在 `logs/` 目录中，这是项目规则。
 
 ### Q: 如何管理配置？
 A: 所有配置通过 `config/config.yaml` 文件管理，支持热重载和环境变量覆盖。
+
+## Docker 部署
+
+项目支持 Docker 容器化部署，提供了完整的 CI/CD 流程。
+
+### 构建镜像
+```bash
+# 构建 Docker 镜像
+docker build -t good-bye .
+
+# 运行容器
+docker run -d -p 8080:8080 good-bye
+```
+
+### 配置挂载
+```bash
+# 挂载配置文件和数据目录
+docker run -d -p 8080:8080 \
+  -v ./config:/root/config \
+  -v ./data:/root/data \
+  -v ./logs:/root/logs \
+  good-bye
+```
+
+### GitHub Actions CI/CD
+项目配置了完整的 GitHub Actions 工作流，包括：
+- 代码质量检查（lint、vet、fmt）
+- 跨平台二进制编译（Linux、Windows、macOS）
+- Docker 镜像构建和推送
