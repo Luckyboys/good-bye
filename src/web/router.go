@@ -11,7 +11,7 @@ import (
 
 type Router struct {
 	engine     *gin.Engine
-	apiHandler *api.APIHandler
+	apiHandler *api.Handler
 	logger     *logrus.Logger
 }
 

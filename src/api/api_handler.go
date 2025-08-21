@@ -11,15 +11,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type APIHandler struct {
+// Handler API处理器
+type Handler struct {
 	stateMgr  *state.StateManager
 	emailSvc  *email.EmailService
 	configMgr *config.ConfigManager
 	logger    *logrus.Logger
 }
 
-func NewAPIHandler(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *APIHandler {
-	return &APIHandler{
+// NewAPIHandler 创建新的API处理器
+func NewAPIHandler(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *Handler {
+	return &Handler{
 		stateMgr:  stateMgr,
 		emailSvc:  emailSvc,
 		configMgr: configMgr,
@@ -27,19 +29,19 @@ func NewAPIHandler(stateMgr *state.StateManager, emailSvc *email.EmailService, c
 	}
 }
 
-// APIResponse 标准API响应结构
-type APIResponse struct {
+// Response 标准API响应结构
+type Response struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   string      `json:"error,omitempty"`
 }
 
-// 健康检查
-func (h *APIHandler) HealthCheck(c *gin.Context) {
+// HealthCheck 健康检查
+func (h *Handler) HealthCheck(c *gin.Context) {
 	health := h.stateMgr.GetHealthStatus()
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "Service is healthy",
 		Data:    health,
@@ -48,11 +50,11 @@ func (h *APIHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 签到接口
-func (h *APIHandler) CheckIn(c *gin.Context) {
+// CheckIn 签到接口
+func (h *Handler) CheckIn(c *gin.Context) {
 	if err := h.stateMgr.UpdateStatus(); err != nil {
 		h.logger.WithError(err).Error("Failed to update status")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "签到失败",
 			Error:   err.Error(),
@@ -63,7 +65,7 @@ func (h *APIHandler) CheckIn(c *gin.Context) {
 
 	h.stateMgr.LogStateChange("check_in", "User checked in successfully")
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "签到成功",
 		Data: map[string]interface{}{
@@ -74,12 +76,12 @@ func (h *APIHandler) CheckIn(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 获取状态信息
-func (h *APIHandler) GetStatus(c *gin.Context) {
+// GetStatus 获取状态信息
+func (h *Handler) GetStatus(c *gin.Context) {
 	status, err := h.stateMgr.GetStatus()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get status")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "获取状态失败",
 			Error:   err.Error(),
@@ -91,7 +93,7 @@ func (h *APIHandler) GetStatus(c *gin.Context) {
 	inactiveDuration, err := h.stateMgr.GetInactiveDuration()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get inactive duration")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "获取不活跃时长失败",
 			Error:   err.Error(),
@@ -103,7 +105,7 @@ func (h *APIHandler) GetStatus(c *gin.Context) {
 	settings, err := h.stateMgr.GetSystemSettings()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get system settings")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "获取系统设置失败",
 			Error:   err.Error(),
@@ -120,7 +122,7 @@ func (h *APIHandler) GetStatus(c *gin.Context) {
 		"check_interval":    settings.CheckInterval,
 	}
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "获取状态成功",
 		Data:    data,
@@ -129,12 +131,12 @@ func (h *APIHandler) GetStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 获取系统设置
-func (h *APIHandler) GetSystemSettings(c *gin.Context) {
+// GetSystemSettings 获取系统设置
+func (h *Handler) GetSystemSettings(c *gin.Context) {
 	settings, err := h.stateMgr.GetSystemSettings()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get system settings")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "获取系统设置失败",
 			Error:   err.Error(),
@@ -143,7 +145,7 @@ func (h *APIHandler) GetSystemSettings(c *gin.Context) {
 		return
 	}
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "获取系统设置成功",
 		Data:    settings,
@@ -152,11 +154,11 @@ func (h *APIHandler) GetSystemSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 更新系统设置
-func (h *APIHandler) UpdateSystemSettings(c *gin.Context) {
+// UpdateSystemSettings 更新系统设置
+func (h *Handler) UpdateSystemSettings(c *gin.Context) {
 	var settings config.SystemConfig
 	if err := c.ShouldBindJSON(&settings); err != nil {
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "无效的请求数据",
 			Error:   err.Error(),
@@ -167,7 +169,7 @@ func (h *APIHandler) UpdateSystemSettings(c *gin.Context) {
 
 	if err := h.stateMgr.UpdateSystemSettings(&settings); err != nil {
 		h.logger.WithError(err).Error("Failed to update system settings")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "更新系统设置失败",
 			Error:   err.Error(),
@@ -189,7 +191,7 @@ func (h *APIHandler) UpdateSystemSettings(c *gin.Context) {
 
 	h.stateMgr.LogStateChange("update_settings", "System settings updated")
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "系统设置更新成功",
 		Data:    settings,
@@ -198,12 +200,12 @@ func (h *APIHandler) UpdateSystemSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 获取遗书状态（从文件读取）
-func (h *APIHandler) GetWillMessages(c *gin.Context) {
+// GetWillMessages 获取遗书状态（从文件读取）
+func (h *Handler) GetWillMessages(c *gin.Context) {
 	// 检查遗书文件是否存在
 	content, err := h.stateMgr.ReadPosthumousPapers()
 	if err != nil {
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "遗书文件不存在或无法读取",
 			Error:   err.Error(),
@@ -218,7 +220,7 @@ func (h *APIHandler) GetWillMessages(c *gin.Context) {
 		"message":     "遗书内容已从文件读取",
 	}
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "获取遗书状态成功",
 		Data:    data,
@@ -227,20 +229,20 @@ func (h *APIHandler) GetWillMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 发送测试邮件
-func (h *APIHandler) SendTestEmail(c *gin.Context) {
+// SendTestEmail 发送测试邮件
+func (h *Handler) SendTestEmail(c *gin.Context) {
 	result := h.emailSvc.SendTestEmail()
 
 	if result.Success {
 		h.stateMgr.LogStateChange("send_test_email", "Test email sent successfully")
-		response := APIResponse{
+		response := Response{
 			Success: true,
 			Message: result.Message,
 		}
 		c.JSON(http.StatusOK, response)
 	} else {
 		h.logger.WithError(result.Error).Error("Failed to send test email")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: result.Message,
 			Error:   result.Error.Error(),
@@ -249,11 +251,11 @@ func (h *APIHandler) SendTestEmail(c *gin.Context) {
 	}
 }
 
-// 获取邮件配置
-func (h *APIHandler) GetEmailConfig(c *gin.Context) {
+// GetEmailConfig 获取邮件配置
+func (h *Handler) GetEmailConfig(c *gin.Context) {
 	emailConfig := h.configMgr.GetEmailConfig()
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "获取邮件配置成功",
 		Data:    emailConfig,
@@ -262,11 +264,11 @@ func (h *APIHandler) GetEmailConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 更新邮件配置
-func (h *APIHandler) UpdateEmailConfig(c *gin.Context) {
+// UpdateEmailConfig 更新邮件配置
+func (h *Handler) UpdateEmailConfig(c *gin.Context) {
 	var emailConfig map[string]interface{}
 	if err := c.ShouldBindJSON(&emailConfig); err != nil {
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "无效的请求数据",
 			Error:   err.Error(),
@@ -284,7 +286,7 @@ func (h *APIHandler) UpdateEmailConfig(c *gin.Context) {
 
 	if err := h.emailSvc.UpdateEmailConfig(smtpHost, smtpPort, username, password, fromEmail, testEmail); err != nil {
 		h.logger.WithError(err).Error("Failed to update email config")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "更新邮件配置失败",
 			Error:   err.Error(),
@@ -295,7 +297,7 @@ func (h *APIHandler) UpdateEmailConfig(c *gin.Context) {
 
 	h.stateMgr.LogStateChange("update_email_config", "Email configuration updated")
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "邮件配置更新成功",
 		Data:    emailConfig,
@@ -304,11 +306,11 @@ func (h *APIHandler) UpdateEmailConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// 测试邮件配置
-func (h *APIHandler) TestEmailConfig(c *gin.Context) {
+// TestEmailConfig 测试邮件配置
+func (h *Handler) TestEmailConfig(c *gin.Context) {
 	var emailConfig map[string]interface{}
 	if err := c.ShouldBindJSON(&emailConfig); err != nil {
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "无效的请求数据",
 			Error:   err.Error(),
@@ -327,13 +329,13 @@ func (h *APIHandler) TestEmailConfig(c *gin.Context) {
 	result := h.emailSvc.TestEmailConfig(smtpHost, smtpPort, username, password, fromEmail, testEmail)
 
 	if result.Success {
-		response := APIResponse{
+		response := Response{
 			Success: true,
 			Message: result.Message,
 		}
 		c.JSON(http.StatusOK, response)
 	} else {
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: result.Message,
 			Error:   result.Error.Error(),
@@ -342,12 +344,12 @@ func (h *APIHandler) TestEmailConfig(c *gin.Context) {
 	}
 }
 
-// 获取统计信息
-func (h *APIHandler) GetStats(c *gin.Context) {
+// GetStats 获取统计信息
+func (h *Handler) GetStats(c *gin.Context) {
 	stats, err := h.stateMgr.GetStats()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get stats")
-		response := APIResponse{
+		response := Response{
 			Success: false,
 			Message: "获取统计信息失败",
 			Error:   err.Error(),
@@ -356,7 +358,7 @@ func (h *APIHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	response := APIResponse{
+	response := Response{
 		Success: true,
 		Message: "获取统计信息成功",
 		Data:    stats,

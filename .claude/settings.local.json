@@ -10,7 +10,8 @@
       "Bash(timeout:*)",
       "Bash(make:*)",
       "Bash(builds/debug/good-bye --version)",
-      "Bash(./builds/debug/good-bye:*)"
+      "Bash(./builds/debug/good-bye:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
