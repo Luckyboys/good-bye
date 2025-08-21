@@ -25,13 +25,13 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("Good-Bye Service v1.0.0")
+		fmt.Println("Good-Bye Service v0.0.1")
 		os.Exit(0)
 	}
 
 	// 初始化日志
 	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{})
+	logger.SetFormatter(&logrus.TextFormatter{})
 	logger.SetLevel(logrus.InfoLevel)
 
 	// 加载配置
@@ -49,23 +49,12 @@ func main() {
 		logger.WithError(err).Fatal("Invalid configuration")
 	}
 
+	// 根据配置重新配置日志设置
+	setLogConfig(logger, configMgr)
+
 	// 验证遗书文件是否存在
 	if err := configMgr.ValidatePosthumousPapersFile(); err != nil {
 		logger.WithError(err).Fatal("Posthumous papers file validation failed")
-	}
-
-	// 设置日志级别
-	if level := configMgr.GetString("log.level"); level != "" {
-		switch level {
-		case "debug":
-			logger.SetLevel(logrus.DebugLevel)
-		case "info":
-			logger.SetLevel(logrus.InfoLevel)
-		case "warn":
-			logger.SetLevel(logrus.WarnLevel)
-		case "error":
-			logger.SetLevel(logrus.ErrorLevel)
-		}
 	}
 
 	// 获取服务器配置
@@ -138,4 +127,31 @@ func cleanup(logger *logrus.Logger, exitChan chan struct{}) error {
 
 	logger.Info("Cleanup completed")
 	return nil
+}
+
+func setLogConfig(logger *logrus.Logger, configMgr *config.Manager) {
+
+	logConfig := configMgr.GetLogConfig()
+	// 设置日志级别
+	if level, err := logrus.ParseLevel(logConfig.Level); err == nil {
+		logger.SetLevel(level)
+	}
+
+	// 设置日志格式
+	switch logConfig.Format {
+	case "json":
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	case "text":
+		logger.SetFormatter(&logrus.TextFormatter{})
+	default:
+		logger.SetFormatter(&logrus.TextFormatter{})
+	}
+
+	// 设置日志输出
+	switch logConfig.Output {
+	case "stdout":
+		logger.SetOutput(os.Stdout)
+	case "stderr":
+		logger.SetOutput(os.Stderr)
+	}
 }

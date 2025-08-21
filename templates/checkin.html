@@ -9,17 +9,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>签到</h1>
-            <p>刷新您的存活状态</p>
+            <h1>生存确认服务</h1>
+            <p>定期确认您的安全状态</p>
         </header>
-        
-        <nav>
-            <ul>
-                <li><a href="/">首页</a></li>
-                <li><a href="/checkin">签到</a></li>
-                <li><a href="/config">配置管理</a></li>
-            </ul>
-        </nav>
         
         <main>
             <div class="checkin-container">
@@ -36,14 +28,22 @@
                         <p>加载中...</p>
                     </div>
                 </div>
+                
+                <div class="card">
+                    <h2>邮件测试</h2>
+                    <p>测试邮件服务是否正常工作</p>
+                    <button onclick="sendTestEmail()" class="btn btn-secondary">发送测试邮件</button>
+                    <div id="email-result" class="result" style="display: none;"></div>
+                </div>
             </div>
         </main>
         
         <footer>
-            <p>&copy; 2024 遗书服务 - 保持联系，让爱延续</p>
+            <p>&copy; <span id="current-year"></span> 生存确认服务 - 定期确认您的安全状态</p>
         </footer>
     </div>
 
+    <script src="/static/js/common.js"></script>
     <script src="/static/js/checkin.js"></script>
 </body>
 </html>

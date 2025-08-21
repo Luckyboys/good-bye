@@ -77,9 +77,6 @@ func (r *Router) setupRoutes() {
 
 		// 邮件相关
 		v1.POST("/email/test", r.apiHandler.SendTestEmail)
-		v1.GET("/email/config", r.apiHandler.GetEmailConfig)
-		v1.PUT("/email/config", r.apiHandler.UpdateEmailConfig)
-		v1.POST("/email/config/test", r.apiHandler.TestEmailConfig)
 
 		// 统计信息
 		v1.GET("/stats", r.apiHandler.GetStats)
@@ -87,29 +84,23 @@ func (r *Router) setupRoutes() {
 
 	// 静态文件服务
 	r.engine.Static("/static", "./static")
-	r.engine.LoadHTMLGlob("templates/*.html")
+	r.engine.LoadHTMLGlob("templates/checkin.html")
 
-	// 首页
+	// 首页（签到页面）
 	r.engine.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.html", gin.H{
-			"title": "遗书服务",
+		c.HTML(200, "checkin.html", gin.H{
+			"title": "生存确认服务",
 		})
 	})
 
-	// 签到页面
+	// 签到页面（兼容旧链接）
 	r.engine.GET("/checkin", func(c *gin.Context) {
 		c.HTML(200, "checkin.html", gin.H{
 			"title": "签到",
 		})
 	})
 
-	// 配置页面
-	r.engine.GET("/config", func(c *gin.Context) {
-		c.HTML(200, "config.html", gin.H{
-			"title": "配置管理",
-		})
-	})
-
+	
 	// 404处理
 	r.engine.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{

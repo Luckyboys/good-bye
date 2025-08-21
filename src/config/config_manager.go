@@ -204,7 +204,7 @@ func (cm *Manager) GetDeploymentConfig() DeploymentConfig {
 	}
 }
 
-// GetEmailConfig 获取邮件配置
+// GetEmailConfig 获取邮件配置（不包含敏感信息）
 func (cm *Manager) GetEmailConfig() EmailConfig {
 	var recipients []EmailRecipient
 	if err := cm.Viper.UnmarshalKey("email.recipients", &recipients); err != nil {
@@ -218,7 +218,7 @@ func (cm *Manager) GetEmailConfig() EmailConfig {
 		SMTPHost:   cm.Viper.GetString("email.smtp_host"),
 		SMTPPort:   cm.Viper.GetInt("email.smtp_port"),
 		Username:   cm.Viper.GetString("email.username"),
-		Password:   cm.Viper.GetString("email.password"),
+		Password:   "", // 不返回密码
 		FromEmail:  cm.Viper.GetString("email.from_email"),
 		TestEmail:  cm.Viper.GetString("email.test_email"),
 		Recipients: recipients,

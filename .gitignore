@@ -77,3 +77,6 @@ tests/
 
 # claude code files
 .claude/
+
+# local files
+config/config.local.yaml

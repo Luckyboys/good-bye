@@ -1,6 +1,9 @@
 // 签到页面JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     loadStatusInfo();
+    
+    // 设置当前年份
+    document.getElementById('current-year').textContent = new Date().getFullYear();
 });
 
 // 加载状态信息
@@ -18,16 +21,7 @@ async function loadStatusInfo() {
                     <strong>当前状态:</strong> ${statusData.data.is_inactive ? '不活跃' : '活跃'}
                 </div>
                 <div class="status-item">
-                    <strong>最后签到时间:</strong> ${formatDateTime(statusData.data.last_seen)}
-                </div>
-                <div class="status-item">
-                    <strong>不活跃时长:</strong> ${statusData.data.inactive_duration}
-                </div>
-                <div class="status-item">
-                    <strong>最大不活跃天数:</strong> ${statusData.data.max_inactive_days} 天
-                </div>
-                <div class="status-item">
-                    <strong>检查间隔:</strong> ${statusData.data.check_interval} 小时
+                    <strong>签到时间:</strong> ${formatDateTime(statusData.data.last_seen)}
                 </div>
             </div>
         `;
@@ -85,5 +79,52 @@ async function performCheckin() {
         resultElement.style.display = 'block';
         
         showNotification('签到失败', 'error');
+    }
+}
+
+// 发送测试邮件
+async function sendTestEmail() {
+    try {
+        const button = document.querySelector('button[onclick="sendTestEmail()"]');
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '发送中...';
+        
+        showNotification('正在发送测试邮件...', 'info');
+        
+        const result = await apiRequest('/email/test', {
+            method: 'POST'
+        });
+        
+        // 显示结果
+        const resultElement = document.getElementById('email-result');
+        resultElement.className = 'result success';
+        resultElement.textContent = result.message;
+        resultElement.style.display = 'block';
+        
+        // 重置按钮
+        button.disabled = false;
+        button.textContent = originalText;
+        
+        showNotification('测试邮件发送成功！', 'success');
+        
+        // 3秒后隐藏结果
+        setTimeout(() => {
+            resultElement.style.display = 'none';
+        }, 3000);
+        
+    } catch (error) {
+        console.error('发送测试邮件失败:', error);
+        
+        const button = document.querySelector('button[onclick="sendTestEmail()"]');
+        button.disabled = false;
+        button.textContent = '发送测试邮件';
+        
+        const resultElement = document.getElementById('email-result');
+        resultElement.className = 'result error';
+        resultElement.textContent = '发送测试邮件失败: ' + error.message;
+        resultElement.style.display = 'block';
+        
+        showNotification('发送测试邮件失败', 'error');
     }
 }

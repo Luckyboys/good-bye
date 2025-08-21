@@ -56,7 +56,7 @@ func (es *Service) SendTestEmail() *Result {
 
 	message := Message{
 		To:      testEmail,
-		Subject: "遗书服务测试邮件",
+		Subject: "生存确认服务测试邮件",
 		Content: es.generateTestEmailContent(),
 		IsHTML:  true,
 	}
@@ -309,7 +309,7 @@ func (es *Service) generateTestEmailContent() string {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>遗书服务测试邮件</title>
+    <title>生存确认服务测试邮件</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -321,16 +321,16 @@ func (es *Service) generateTestEmailContent() string {
 <body>
     <div class="container">
         <div class="header">
-            <h1>遗书服务测试邮件</h1>
+            <h1>生存确认服务测试邮件</h1>
         </div>
         <div class="content">
             <p>您好！</p>
-            <p>这是一封来自遗书服务的测试邮件。</p>
+            <p>这是一封来自生存确认服务的测试邮件。</p>
             <p>如果您收到这封邮件，说明邮件服务配置正常。</p>
             <p>发送时间：%s</p>
         </div>
         <div class="footer">
-            <p>遗书服务 - 自动化邮件通知系统</p>
+            <p>生存确认服务 - 自动化邮件通知系统</p>
         </div>
     </div>
 </body>
@@ -363,7 +363,7 @@ func (es *Service) generateWillEmailContentFromFile(content string) string {
         </div>
         <div class="content">
             <p>尊敬的收件人：</p>
-            <p>此邮件是由遗书服务自动发送的重要通知。</p>
+            <p>此邮件是由生存确认服务自动发送的重要通知。</p>
             <p>由于长时间未检测到用户活动，系统认为需要发送以下重要信息。</p>
             
             <div class="will-content">
@@ -378,7 +378,7 @@ func (es *Service) generateWillEmailContentFromFile(content string) string {
             </p>
         </div>
         <div class="footer">
-            <p>遗书服务 - 自动化邮件通知系统</p>
+            <p>生存确认服务 - 自动化邮件通知系统</p>
         </div>
     </div>
 </body>
