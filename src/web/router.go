@@ -100,7 +100,6 @@ func (r *Router) setupRoutes() {
 		})
 	})
 
-	
 	// 404处理
 	r.engine.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{
