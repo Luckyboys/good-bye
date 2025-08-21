@@ -14,13 +14,18 @@ RUN go mod download
 COPY . .
 
 # 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-s -w" -o good-bye cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o good-bye cmd/main.go
 
 # 使用轻量级的 Alpine 镜像作为运行环境
-FROM alpine:latest
+FROM alpine:3.22
 
 # 安装 ca-certificates 以支持 HTTPS 请求
-RUN apk --no-cache add ca-certificates
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache bash bash-completion bash-doc && \
+    apk add --no-cache ca-certificates curl tzdata && \
+    rm -rf /var/cache/apk/* && \
+    sh -c 'bash'
 
 # 设置工作目录
 WORKDIR /app/
@@ -29,8 +34,8 @@ WORKDIR /app/
 COPY --from=builder /app/good-bye .
 
 # 拷贝静态资源文件
-COPY templates /app/
-COPY static /app/
+COPY templates /app/templates
+COPY static /app/static
 
 # 创建配置文件目录
 RUN mkdir -p ./config ./data ./logs
