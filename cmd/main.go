@@ -95,7 +95,7 @@ func main() {
 
 	// 创建退出信号通道
 	exitChan := make(chan struct{})
-	
+
 	// 启动后台任务
 	taskScheduler := scheduler.NewTaskScheduler(stateMgr, emailSvc, configMgr, logger, exitChan)
 	go taskScheduler.Start()
@@ -132,10 +132,10 @@ func main() {
 // cleanup 清理资源
 func cleanup(logger *logrus.Logger, exitChan chan struct{}) error {
 	logger.Info("Performing cleanup...")
-	
+
 	// 关闭退出通道，通知所有后台任务退出
 	close(exitChan)
-	
+
 	logger.Info("Cleanup completed")
 	return nil
 }

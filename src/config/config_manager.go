@@ -63,7 +63,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("email.password", "")
 	v.SetDefault("email.from_email", "")
 	v.SetDefault("email.test_email", "")
-	
+
 	// 默认收件人列表
 	v.SetDefault("email.recipients", []map[string]string{
 		{"email": "", "name": ""},
@@ -107,7 +107,6 @@ func (cm *Manager) LoadConfig() error {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	
 	cm.logger.Info("Configuration loaded successfully")
 	return nil
 }
@@ -389,12 +388,11 @@ type EmailRecipient struct {
 
 // EmailConfig 邮件配置
 type EmailConfig struct {
-	SMTPHost    string           `mapstructure:"smtp_host"`
-	SMTPPort    int              `mapstructure:"smtp_port"`
-	Username    string           `mapstructure:"username"`
-	Password    string           `mapstructure:"password"`
-	FromEmail   string           `mapstructure:"from_email"`
-	TestEmail   string           `mapstructure:"test_email"`
-	Recipients  []EmailRecipient `mapstructure:"recipients"`
+	SMTPHost   string           `mapstructure:"smtp_host"`
+	SMTPPort   int              `mapstructure:"smtp_port"`
+	Username   string           `mapstructure:"username"`
+	Password   string           `mapstructure:"password"`
+	FromEmail  string           `mapstructure:"from_email"`
+	TestEmail  string           `mapstructure:"test_email"`
+	Recipients []EmailRecipient `mapstructure:"recipients"`
 }
-
