@@ -74,3 +74,6 @@ temp/
 
 # tests files
 tests/
+
+# claude code files
+.claude/
