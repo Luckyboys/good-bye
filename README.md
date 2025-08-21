@@ -1,152 +1,314 @@
-# good-bye
-一个在一段时间没有刷新存活状态后，通过邮件发送遗书的小项目
+# 生存确认服务
 
-由于目前科技水平和厂商开放 API 水平，通过穿戴式设备刷新存活状态的方案暂时不太可取，没有可以调用的接口去获知或者穿戴式设备没有开放通知接口。因此使用每日签到的方式去刷新存活状态属于比较容易实现的方式。
+一个在用户长时间未活动后，通过邮件发送预设遗书内容的Go项目。
 
-## 项目架构
+## 项目概述
 
-### 核心组件
-- **Web服务**: 提供签到界面和配置管理
-- **任务调度器**: 定时检查存活状态
-- **邮件服务**: 处理邮件发送
-- **配置管理**: 管理遗书内容和邮件配置
-- **状态管理**: 记录最后存活时间
+生存确认服务是一个简单的生命状态监控系统，用户通过定期签到来刷新存活状态。如果在指定时间内没有签到，系统会自动向预设的邮箱发送遗书内容。
 
-## 开发团队Agent规划
+### 背景说明
 
-### 开发者Agent分工
-
-#### 1. frontend-developer-agent
-**职责**: 前端开发工程师
-- 开发Web界面和用户体验
-- 实现签到页面和配置管理界面
-- 处理前端交互和响应式设计
-- 优化用户界面和用户体验
-
-**负责模块**:
-- `src/web/` - Web服务层
-- `templates/` - HTML模板
-- `static/` - 静态资源(CSS, JS, 图片)
-- 前端构建和打包
-
-**开发工具**:
-- HTML/CSS/JavaScript开发
-- 模板引擎集成
-- 前端构建工具
-- 浏览器调试工具
-
-#### 2. backend-developer-agent
-**职责**: 后端开发工程师
-- 设计和实现API接口
-- 开发业务逻辑和数据处理
-- 实现状态管理和持久化
-- 处理HTTP请求和响应
-
-**负责模块**:
-- `src/api/` - API接口层
-- `src/handlers/` - 请求处理器
-- `src/state/` - 状态管理
-- `src/models/` - 数据模型
-
-**开发工具**:
-- Go语言开发工具
-- HTTP服务器开发
-- 数据库操作工具
-- API测试工具
-
-#### 3. devops-engineer-agent
-**职责**: DevOps工程师
-- 设计Docker容器化方案
-- 配置CI/CD流水线
-- 管理部署和运维
-- 监控和日志管理
-
-**负责模块**:
-- `docker/` - Docker配置
-- `.github/workflows/` - CI/CD配置
-- `scripts/` - 部署脚本
-- 监控和日志配置
-
-**开发工具**:
-- Docker构建工具
-- Kubernetes配置
-- CI/CD流水线工具
-- 监控和日志工具
-
-#### 4. fullstack-lead-agent
-**职责**: 全栈技术负责人
-- 整体架构设计和技术选型
-- 代码质量控制和审查
-- 项目进度管理和协调
-- 技术文档编写和维护
-
-**负责模块**:
-- 整体项目架构
-- 技术选型和框架
-- 代码规范和最佳实践
-- 项目文档和API文档
-
-**开发工具**:
-- 架构设计工具
-- 代码审查工具
-- 项目管理工具
-- 文档生成工具
-
-## 项目目录结构
-
-```
-good-bye/
-├── src/
-│   ├── api/             # API接口层
-│   ├── handlers/        # 请求处理器
-│   ├── models/          # 数据模型
-│   ├── state/           # 状态管理
-│   ├── email/           # 邮件服务
-│   ├── queue/           # 邮件队列
-│   ├── config/          # 配置管理
-│   ├── utils/           # 工具函数
-│   └── web/             # Web服务层
-├── templates/           # HTML模板
-│   └── email/          # 邮件模板
-├── static/             # 静态资源
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── config/             # 配置文件
-├── docker/             # Docker相关
-├── scripts/            # 构建和部署脚本
-├── tests/              # 测试文件
-├── docs/               # 项目文档
-└── .github/workflows/  # CI/CD配置
-```
+由于目前科技水平和厂商开放API水平，通过穿戴式设备刷新存活状态的方案暂时不太可取，没有可以调用的接口去获知或者穿戴式设备没有开放通知接口。因此使用每日签到的方式去刷新存活状态属于比较容易实现的方式。
 
 ## 功能特性
 
 ### 核心功能
-- [x] 通过命令行启动服务
-- [x] 可以配置遗书内容和标题
-- [x] 可以通过网页签到（刷新存活状态）
-- [x] 配置发送的目标邮件和发送邮箱的账号密码
-- [x] 定时检查，如果指定天数内没有刷新存活状态，则发送通知邮件
-- [x] 可以通过网页手动发送测试信件，测试收件邮箱单独配置
-- [x] 自动化打包成Docker镜像并发送到镜像仓库
-- [x] 启动时，默认刷新存活状态（如果在启动命令中指定不刷新，则不刷新）
+- ✅ 通过命令行启动服务
+- ✅ 可以配置遗书内容和标题
+- ✅ 可以通过网页签到（刷新存活状态）
+- ✅ 配置发送的目标邮件和发送邮箱的账号密码
+- ✅ 定时检查，如果指定天数内没有刷新存活状态，则发送通知邮件
+- ✅ 可以通过网页手动发送测试信件，测试收件邮箱单独配置
+- ✅ 启动时，默认刷新存活状态（如果在启动命令中指定不刷新，则不刷新）
 
 ### 技术特性
-- [x] 配置文件热重载
-- [x] 状态持久化
-- [x] 日志记录和监控
-- [x] 健康检查接口
+- ✅ 配置文件热重载
+- ✅ 状态持久化
+- ✅ 日志记录和监控
+- ✅ 健康检查接口
+- ✅ 无数据库架构，使用内存存储和配置文件
 
-## 部署方案
+## 快速开始
+
+### 系统要求
+- Go 1.20+
+- 操作系统：Linux/macOS/Windows
+- 内存：至少512MB
+- 磁盘：至少100MB
+
+### 安装步骤
+
+1. **克隆项目**
+```bash
+git clone https://github.com/Luckyboys/good-bye.git
+cd good-bye
+```
+
+2. **编译项目**
+```bash
+# 使用Makefile（推荐）
+make build
+
+# 或者直接使用go build
+go build -o good-bye cmd/main.go
+```
+
+3. **配置文件**
+```bash
+# 复制配置文件模板
+cp config/config.yaml config/config.local.yaml
+
+# 编辑配置文件，修改邮件设置等
+vim config/config.local.yaml
+```
+
+4. **创建必要目录和文件**
+```bash
+# 创建数据目录
+mkdir -p data logs
+
+# 创建遗书文件
+echo "# 我的遗书
+
+亲爱的家人和朋友：
+
+如果你们收到这封信，说明我已经有一段时间没有活动了。
+
+请照顾好自己，记住美好的时光。
+
+爱你们的，
+[你的名字]" > data/posthumous_papers.md
+```
+
+5. **启动服务**
+```bash
+# 基本启动
+./good-bye
+
+# 指定配置文件
+./good-bye -config ./config/config.local.yaml
+
+# 指定端口
+./good-bye -port 8080
+```
+
+6. **访问服务**
+打开浏览器访问：`http://localhost:8080`
+
+## 使用方法
+
+### Web界面使用
+
+1. **签到功能**
+   - 访问首页，点击"立即签到"按钮
+   - 系统会记录签到时间并更新状态
+
+2. **状态查看**
+   - 查看当前状态（活跃/不活跃）
+   - 查看最后签到时间
+   - 查看不活跃时长
+
+3. **邮件测试**
+   - 点击"发送测试邮件"按钮
+   - 系统会向配置的测试邮箱发送测试邮件
+
+### 命令行使用
+
+```bash
+# 查看帮助
+./good-bye --help
+
+# 查看版本
+./good-bye --version
+
+# 启动服务
+./good-bye
+
+# 指定配置文件
+./good-bye --config /path/to/config.yaml
+
+# 指定端口
+./good-bye --port 8080
+```
+
+### 配置说明
+
+主要配置项：
+
+```yaml
+# 服务器配置
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# 系统设置
+system:
+  check_interval: 24        # 检查间隔（小时）
+  max_inactive_days: 7      # 最大不活跃天数
+  timezone: "Asia/Shanghai"  # 时区
+
+# 邮件配置
+email:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  username: "your-email@gmail.com"
+  password: "your-app-password"
+  from_email: "your-email@gmail.com"
+  test_email: "test@example.com"
+
+# 部署配置
+deployment:
+  data_dir: "./data"
+  log_dir: "./logs"
+  posthumous_papers_file: "./data/posthumous_papers.md"
+```
+
+## API接口
+
+### 健康检查
+- `GET /health` - 服务健康状态
+
+### 状态管理
+- `POST /api/v1/checkin` - 用户签到
+- `GET /api/v1/status` - 获取状态信息
+- `GET /api/v1/stats` - 获取统计信息
+
+### 系统设置
+- `GET /api/v1/settings` - 获取系统设置
+- `PUT /api/v1/settings` - 更新系统设置
+
+### 遗书管理
+- `GET /api/v1/wills` - 获取遗书状态
+
+### 邮件服务
+- `POST /api/v1/email/test` - 发送测试邮件
+
+## 开发和构建
+
+### 开发环境设置
+```bash
+# 安装依赖
+make deps
+
+# 运行测试
+make test
+
+# 代码格式化
+make fmt
+
+# 代码检查
+make lint
+
+# 构建调试版本
+make debug
+
+# 构建发行版本
+make release
+```
 
 ### Docker部署
-- 使用多阶段构建优化镜像大小
-- 支持环境变量配置
-- 包含健康检查
+```bash
+# 根据你的情况修改遗书内容
+# vim data/posthumous_papers.md
 
-### CI/CD流程
-- 代码提交自动构建
-- 自动化测试
-- 镜像自动推送
-- 部署自动化
+# 运行容器
+docker run -d -p 8080:8080 -v data:/root/data luckyboys/good-bye
+```
+
+## 文档
+
+- [项目架构](docs/ARCHITECTURE.md) - 详细的技术架构说明
+- [开发指南](docs/DEVELOPMENT.md) - 开发团队规划和分工
+- [部署指南](docs/DEPLOYMENT.md) - 完整的部署方案和运维指南
+- [构建规则](BUILD_RULES.md) - 构建系统和规则说明
+
+## 安全注意事项
+
+⚠️ **重要提醒**：
+
+1. **配置文件安全**
+   - `config/config.local.yaml` 包含敏感信息，已添加到 `.gitignore`
+   - 请勿将包含密码的配置文件提交到版本控制
+   - 建议设置适当的文件权限：`chmod 600 config/config.local.yaml`
+
+2. **邮件安全**
+   - 使用应用专用密码，不要使用主密码
+   - 定期更新邮件密码
+   - 确保测试邮箱的安全性
+
+3. **网络安全**
+   - 建议在生产环境中使用HTTPS
+   - 配置适当的防火墙规则
+   - 限制访问IP地址
+
+## 故障排除
+
+### 常见问题
+
+1. **端口占用**
+   ```bash
+   # 查看端口占用
+   netstat -tulpn | grep :8080
+   # 修改配置文件中的端口
+   ```
+
+2. **邮件发送失败**
+   ```bash
+   # 检查邮件配置
+   # 查看日志文件
+   tail -f logs/good-bye.log
+   # 测试邮件配置
+   curl -X POST http://localhost:8080/api/v1/email/test
+   ```
+
+3. **配置文件错误**
+   ```bash
+   # 验证配置文件
+   ./good-bye -validate-config
+   ```
+
+### 日志查看
+```bash
+# 查看最新日志
+tail -f logs/good-bye.log
+
+# 搜索错误
+grep "ERROR" logs/good-bye.log
+```
+
+## 贡献
+
+欢迎提交Issue和Pull Request！
+
+### 开发流程
+1. Fork项目
+2. 创建功能分支
+3. 提交变更
+4. 创建Pull Request
+
+### 代码规范
+- 遵循Go语言标准代码风格
+- 提交前运行 `make check` 进行代码检查
+- 编写清晰的提交信息
+
+## 许可证
+
+本项目采用MIT许可证，详情请参阅 [LICENSE](LICENSE) 文件。
+
+## 更新日志
+
+### v1.0.0
+- 初始版本发布
+- 基本的签到和邮件发送功能
+- Web界面和API接口
+- Docker支持和CI/CD流程
+
+## 联系方式
+
+如有问题或建议，请通过以下方式联系：
+
+- GitHub Issues: [提交问题](https://github.com/Luckyboys/good-bye/issues)
+
+---
+
+**注意**：这是一个生命状态监控工具，请谨慎使用并定期测试，确保在紧急情况下能够正常工作。

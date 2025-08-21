@@ -48,7 +48,6 @@ func setDefaults(v *viper.Viper) {
 	// 系统配置
 	v.SetDefault("system.check_interval", time.Hour*24)
 	v.SetDefault("system.max_inactive_days", 7)
-	v.SetDefault("system.enable_notification", false)
 	v.SetDefault("system.timezone", "Asia/Shanghai")
 
 	// 日志配置
@@ -127,7 +126,6 @@ server:
 system:
   check_interval: "24h"     # 检查间隔（时间间隔格式）
   max_inactive_days: 7      # 最大不活跃天数
-  enable_notification: false  # 启用通知
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置
@@ -179,10 +177,9 @@ func (cm *Manager) GetServerConfig() ServerConfig {
 // GetSystemConfig 获取系统配置
 func (cm *Manager) GetSystemConfig() SystemConfig {
 	return SystemConfig{
-		CheckInterval:      cm.Viper.GetDuration("system.check_interval"),
-		MaxInactiveDays:    cm.Viper.GetInt("system.max_inactive_days"),
-		EnableNotification: cm.Viper.GetBool("system.enable_notification"),
-		Timezone:           cm.Viper.GetString("system.timezone"),
+		CheckInterval:   cm.Viper.GetDuration("system.check_interval"),
+		MaxInactiveDays: cm.Viper.GetInt("system.max_inactive_days"),
+		Timezone:        cm.Viper.GetString("system.timezone"),
 	}
 }
 
@@ -311,22 +308,6 @@ func (cm *Manager) ValidateConfig() error {
 		return fmt.Errorf("posthumous papers file path is required")
 	}
 
-	// 验证邮件配置（如果启用通知）
-	if cm.Viper.GetBool("system.enable_notification") {
-		if cm.Viper.GetString("email.smtp_host") == "" {
-			return fmt.Errorf("SMTP host is required when notification is enabled")
-		}
-		if cm.Viper.GetString("email.username") == "" {
-			return fmt.Errorf("email username is required when notification is enabled")
-		}
-		if cm.Viper.GetString("email.password") == "" {
-			return fmt.Errorf("email password is required when notification is enabled")
-		}
-		if cm.Viper.GetString("email.from_email") == "" {
-			return fmt.Errorf("from email is required when notification is enabled")
-		}
-	}
-
 	return nil
 }
 
@@ -360,10 +341,9 @@ type ServerConfig struct {
 
 // SystemConfig 系统配置
 type SystemConfig struct {
-	CheckInterval      time.Duration `mapstructure:"check_interval"`
-	MaxInactiveDays    int           `mapstructure:"max_inactive_days"`
-	EnableNotification bool          `mapstructure:"enable_notification"`
-	Timezone           string        `mapstructure:"timezone"`
+	CheckInterval   time.Duration `mapstructure:"check_interval"`
+	MaxInactiveDays int           `mapstructure:"max_inactive_days"`
+	Timezone        string        `mapstructure:"timezone"`
 }
 
 // LogConfig 日志配置

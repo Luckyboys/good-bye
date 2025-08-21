@@ -137,7 +137,6 @@ make help
 system:
   check_interval: 24        # 检查间隔（小时）
   max_inactive_days: 7      # 最大不活跃天数
-  enable_notification: true  # 启用通知
   timezone: "Asia/Shanghai"  # 时区
 
 email:

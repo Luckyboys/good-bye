@@ -9,7 +9,6 @@ server:
 system:
   check_interval: "24h"     # 检查间隔（时间间隔格式）
   max_inactive_days: 7      # 最大不活跃天数
-  enable_notification: false  # 启用通知
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置

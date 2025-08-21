@@ -181,7 +181,6 @@ func (h *Handler) UpdateSystemSettings(c *gin.Context) {
 	// 同步到配置文件
 	h.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
 	h.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
-	h.configMgr.Viper.Set("system.enable_notification", settings.EnableNotification)
 	h.configMgr.Viper.Set("system.timezone", settings.Timezone)
 
 	configPath := h.configMgr.Viper.ConfigFileUsed()

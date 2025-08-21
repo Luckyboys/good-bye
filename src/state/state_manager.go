@@ -97,7 +97,6 @@ func (sm *Manager) UpdateSystemSettings(settings *config.SystemConfig) error {
 	// 更新配置文件
 	sm.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
 	sm.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
-	sm.configMgr.Viper.Set("system.enable_notification", settings.EnableNotification)
 	sm.configMgr.Viper.Set("system.timezone", settings.Timezone)
 
 	configPath := sm.configMgr.Viper.ConfigFileUsed()
@@ -122,13 +121,6 @@ func (sm *Manager) ReadPosthumousPapers() (string, error) {
 
 // ShouldSendWillMessage 检查是否应该发送遗书消息
 func (sm *Manager) ShouldSendWillMessage() (bool, error) {
-	systemConfig := sm.configMgr.GetSystemConfig()
-
-	// 如果通知功能被禁用，则不发送
-	if !systemConfig.EnableNotification {
-		return false, nil
-	}
-
 	// 检查是否处于不活跃状态
 	isInactive, err := sm.IsInactive()
 	if err != nil {
@@ -171,13 +163,12 @@ func (sm *Manager) GetHealthStatus() map[string]any {
 	isInactive := duration.Hours() > float64(systemConfig.MaxInactiveDays*24)
 
 	health := map[string]any{
-		"status":              "healthy",
-		"last_seen":           sm.lastSeen.Format(time.RFC3339),
-		"inactive_duration":   inactiveDuration.String(),
-		"is_inactive":         isInactive,
-		"max_inactive_days":   systemConfig.MaxInactiveDays,
-		"check_interval":      systemConfig.CheckInterval,
-		"enable_notification": systemConfig.EnableNotification,
+		"status":            "healthy",
+		"last_seen":         sm.lastSeen.Format(time.RFC3339),
+		"inactive_duration": inactiveDuration.String(),
+		"is_inactive":       isInactive,
+		"max_inactive_days": systemConfig.MaxInactiveDays,
+		"check_interval":    systemConfig.CheckInterval,
 	}
 
 	return health
