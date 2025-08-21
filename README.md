@@ -211,8 +211,11 @@ make release
 # 根据你的情况修改遗书内容
 # vim data/posthumous_papers.md
 
-# 运行容器
+# 使用 Docker Hub 镜像
 docker run -d -p 8080:8080 -v data:/root/data luckyboys/good-bye
+
+# 或使用阿里云容器镜像
+docker run -d -p 8080:8080 -v data:/root/data crpi-kyazw4facu8wslpn.cn-shanghai.personal.cr.aliyuncs.com/luckyboys/good-bye
 ```
 
 ## 文档

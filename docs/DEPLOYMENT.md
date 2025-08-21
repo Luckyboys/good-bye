@@ -218,11 +218,20 @@ sudo journalctl -u good-bye -f
    - 版本标记
 
 3. **自动部署**
-   - Docker镜像推送
+   - Docker镜像推送到多个容器镜像仓库
+   - 推送到 Docker Hub：`${{ secrets.DOCKER_USERNAME }}/good-bye`
+   - 推送到阿里云容器镜像服务：`crpi-kyazw4facu8wslpn.cn-shanghai.personal.cr.aliyuncs.com/luckyboys/good-bye`
    - 自动化部署到生产环境
 
 ### 工作流文件
 `.github/workflows/ci-cd.yml` 包含完整的CI/CD流程配置。
+
+### 所需 GitHub Secrets
+需要在 GitHub 仓库设置中配置以下 secrets：
+- `DOCKER_USERNAME`: Docker Hub 用户名
+- `DOCKER_PASSWORD`: Docker Hub 密码
+- `ALIYUN_REGISTRY_USERNAME`: 阿里云容器镜像服务用户名
+- `ALIYUN_REGISTRY_PASSWORD`: 阿里云容器镜像服务密码
 
 ## 监控和日志
 
