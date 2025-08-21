@@ -10,12 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-type ConfigManager struct {
+// Manager 配置管理器
+type Manager struct {
 	Viper  *viper.Viper
 	logger *logrus.Logger
 }
 
-func NewConfigManager(logger *logrus.Logger) *ConfigManager {
+// NewConfigManager 创建新的配置管理器
+func NewConfigManager(logger *logrus.Logger) *Manager {
 	v := viper.New()
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
@@ -29,7 +31,7 @@ func NewConfigManager(logger *logrus.Logger) *ConfigManager {
 	// 设置默认值
 	setDefaults(v)
 
-	return &ConfigManager{
+	return &Manager{
 		Viper:  v,
 		logger: logger,
 	}
@@ -74,7 +76,7 @@ func setDefaults(v *viper.Viper) {
 }
 
 // LoadConfig 加载配置文件
-func (cm *ConfigManager) LoadConfig() error {
+func (cm *Manager) LoadConfig() error {
 	// 确保配置目录存在
 	if err := os.MkdirAll("./config", 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
@@ -111,7 +113,7 @@ func (cm *ConfigManager) LoadConfig() error {
 }
 
 // createDefaultConfig 创建默认配置文件
-func (cm *ConfigManager) createDefaultConfig() error {
+func (cm *Manager) createDefaultConfig() error {
 	configPath := "./config/config.yaml"
 
 	// 创建默认配置内容
@@ -166,7 +168,7 @@ deployment:
 }
 
 // GetServerConfig 获取服务器配置
-func (cm *ConfigManager) GetServerConfig() ServerConfig {
+func (cm *Manager) GetServerConfig() ServerConfig {
 	return ServerConfig{
 		Port:         cm.Viper.GetInt("server.port"),
 		Host:         cm.Viper.GetString("server.host"),
@@ -176,7 +178,7 @@ func (cm *ConfigManager) GetServerConfig() ServerConfig {
 }
 
 // GetSystemConfig 获取系统配置
-func (cm *ConfigManager) GetSystemConfig() SystemConfig {
+func (cm *Manager) GetSystemConfig() SystemConfig {
 	return SystemConfig{
 		CheckInterval:      cm.Viper.GetDuration("system.check_interval"),
 		MaxInactiveDays:    cm.Viper.GetInt("system.max_inactive_days"),
@@ -186,7 +188,7 @@ func (cm *ConfigManager) GetSystemConfig() SystemConfig {
 }
 
 // GetLogConfig 获取日志配置
-func (cm *ConfigManager) GetLogConfig() LogConfig {
+func (cm *Manager) GetLogConfig() LogConfig {
 	return LogConfig{
 		Level:  cm.Viper.GetString("log.level"),
 		Format: cm.Viper.GetString("log.format"),
@@ -195,7 +197,7 @@ func (cm *ConfigManager) GetLogConfig() LogConfig {
 }
 
 // GetDeploymentConfig 获取部署配置
-func (cm *ConfigManager) GetDeploymentConfig() DeploymentConfig {
+func (cm *Manager) GetDeploymentConfig() DeploymentConfig {
 	return DeploymentConfig{
 		DataDir:              cm.Viper.GetString("deployment.data_dir"),
 		LogDir:               cm.Viper.GetString("deployment.log_dir"),
@@ -204,7 +206,7 @@ func (cm *ConfigManager) GetDeploymentConfig() DeploymentConfig {
 }
 
 // GetEmailConfig 获取邮件配置
-func (cm *ConfigManager) GetEmailConfig() EmailConfig {
+func (cm *Manager) GetEmailConfig() EmailConfig {
 	var recipients []EmailRecipient
 	if err := cm.Viper.UnmarshalKey("email.recipients", &recipients); err != nil {
 		cm.logger.WithError(err).Warn("Failed to unmarshal email recipients, using empty list")
@@ -225,7 +227,7 @@ func (cm *ConfigManager) GetEmailConfig() EmailConfig {
 }
 
 // UpdateConfig 更新配置
-func (cm *ConfigManager) UpdateConfig(key string, value any) error {
+func (cm *Manager) UpdateConfig(key string, value any) error {
 	cm.Viper.Set(key, value)
 
 	// 保存到配置文件
@@ -239,33 +241,33 @@ func (cm *ConfigManager) UpdateConfig(key string, value any) error {
 }
 
 // GetConfig 获取配置值
-func (cm *ConfigManager) GetConfig(key string) any {
+func (cm *Manager) GetConfig(key string) any {
 	return cm.Viper.Get(key)
 }
 
 // GetString 获取字符串配置
-func (cm *ConfigManager) GetString(key string) string {
+func (cm *Manager) GetString(key string) string {
 	return cm.Viper.GetString(key)
 }
 
 // GetInt 获取整数配置
-func (cm *ConfigManager) GetInt(key string) int {
+func (cm *Manager) GetInt(key string) int {
 	return cm.Viper.GetInt(key)
 }
 
 // GetBool 获取布尔配置
-func (cm *ConfigManager) GetBool(key string) bool {
+func (cm *Manager) GetBool(key string) bool {
 	return cm.Viper.GetBool(key)
 }
 
 // SyncToDatabase 同步配置到数据库
-func (cm *ConfigManager) SyncToDatabase() error {
+func (cm *Manager) SyncToDatabase() error {
 	// 不再需要数据库同步
 	return nil
 }
 
 // ValidatePosthumousPapersFile 验证遗书文件是否存在
-func (cm *ConfigManager) ValidatePosthumousPapersFile() error {
+func (cm *Manager) ValidatePosthumousPapersFile() error {
 	posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
 	if posthumousPapersFile == "" {
 		return fmt.Errorf("posthumous papers file path is not configured")
@@ -279,7 +281,7 @@ func (cm *ConfigManager) ValidatePosthumousPapersFile() error {
 }
 
 // ValidateConfig 验证配置
-func (cm *ConfigManager) ValidateConfig() error {
+func (cm *Manager) ValidateConfig() error {
 	// 验证端口
 	port := cm.Viper.GetInt("server.port")
 	if port < 1 || port > 65535 {
@@ -330,12 +332,12 @@ func (cm *ConfigManager) ValidateConfig() error {
 }
 
 // GetConfigPath 获取配置文件路径
-func (cm *ConfigManager) GetConfigPath() string {
+func (cm *Manager) GetConfigPath() string {
 	return cm.Viper.ConfigFileUsed()
 }
 
 // ReloadConfig 重新加载配置
-func (cm *ConfigManager) ReloadConfig() error {
+func (cm *Manager) ReloadConfig() error {
 	if err := cm.Viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("failed to reload config: %w", err)
 	}
@@ -349,7 +351,7 @@ func (cm *ConfigManager) ReloadConfig() error {
 	return nil
 }
 
-// 配置结构体定义
+// ServerConfig 服务器配置
 type ServerConfig struct {
 	Port         int    `mapstructure:"port"`
 	Host         string `mapstructure:"host"`
@@ -357,6 +359,7 @@ type ServerConfig struct {
 	WriteTimeout int    `mapstructure:"write_timeout"`
 }
 
+// SystemConfig 系统配置
 type SystemConfig struct {
 	CheckInterval      time.Duration `mapstructure:"check_interval"`
 	MaxInactiveDays    int           `mapstructure:"max_inactive_days"`
@@ -364,23 +367,27 @@ type SystemConfig struct {
 	Timezone           string        `mapstructure:"timezone"`
 }
 
+// LogConfig 日志配置
 type LogConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
 	Output string `mapstructure:"output"`
 }
 
+// DeploymentConfig 部署配置
 type DeploymentConfig struct {
 	DataDir              string `mapstructure:"data_dir"`
 	LogDir               string `mapstructure:"log_dir"`
 	PosthumousPapersFile string `mapstructure:"posthumous_papers_file"`
 }
 
+// EmailRecipient 邮件收件人
 type EmailRecipient struct {
 	Email string `mapstructure:"email"`
 	Name  string `mapstructure:"name"`
 }
 
+// EmailConfig 邮件配置
 type EmailConfig struct {
 	SMTPHost    string           `mapstructure:"smtp_host"`
 	SMTPPort    int              `mapstructure:"smtp_port"`

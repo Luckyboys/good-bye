@@ -9,13 +9,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Router Web路由器
 type Router struct {
 	engine     *gin.Engine
 	apiHandler *api.Handler
 	logger     *logrus.Logger
 }
 
-func NewRouter(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *Router {
+// NewRouter 创建新的路由器
+func NewRouter(stateMgr *state.Manager, emailSvc *email.Service, configMgr *config.Manager, logger *logrus.Logger) *Router {
 	// 设置Gin模式
 	if configMgr.GetString("log.level") == "debug" {
 		gin.SetMode(gin.DebugMode)
@@ -116,11 +118,13 @@ func (r *Router) setupRoutes() {
 	})
 }
 
+// Run 启动HTTP服务器
 func (r *Router) Run(addr string) error {
 	r.logger.Infof("Starting server on %s", addr)
 	return r.engine.Run(addr)
 }
 
+// GetEngine 获取Gin引擎
 func (r *Router) GetEngine() *gin.Engine {
 	return r.engine
 }

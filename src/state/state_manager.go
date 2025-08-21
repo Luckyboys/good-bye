@@ -10,8 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type StateManager struct {
-	configMgr      *config.ConfigManager
+// Manager 状态管理器
+type Manager struct {
+	configMgr      *config.Manager
 	logger         *logrus.Logger
 	dataDir        string
 	posthumousFile string
@@ -19,8 +20,9 @@ type StateManager struct {
 	mu             sync.RWMutex
 }
 
-func NewStateManager(configMgr *config.ConfigManager, logger *logrus.Logger, dataDir, posthumousFile string) *StateManager {
-	return &StateManager{
+// NewStateManager 创建新的状态管理器
+func NewStateManager(configMgr *config.Manager, logger *logrus.Logger, dataDir, posthumousFile string) *Manager {
+	return &Manager{
 		configMgr:      configMgr,
 		logger:         logger,
 		dataDir:        dataDir,
@@ -30,7 +32,7 @@ func NewStateManager(configMgr *config.ConfigManager, logger *logrus.Logger, dat
 }
 
 // UpdateStatus 更新存活状态
-func (sm *StateManager) UpdateStatus() error {
+func (sm *Manager) UpdateStatus() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.lastSeen = time.Now()
@@ -43,7 +45,7 @@ type Status struct {
 }
 
 // GetStatus 获取当前状态
-func (sm *StateManager) GetStatus() (*Status, error) {
+func (sm *Manager) GetStatus() (*Status, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
@@ -53,7 +55,7 @@ func (sm *StateManager) GetStatus() (*Status, error) {
 }
 
 // IsInactive 检查是否处于不活跃状态
-func (sm *StateManager) IsInactive() (bool, error) {
+func (sm *Manager) IsInactive() (bool, error) {
 	systemConfig := sm.configMgr.GetSystemConfig()
 
 	sm.mu.RLock()
@@ -64,34 +66,34 @@ func (sm *StateManager) IsInactive() (bool, error) {
 }
 
 // IsInactiveWithStatus 检查给定状态是否处于不活跃状态
-func (sm *StateManager) IsInactiveWithStatus(status *Status, maxDays int) bool {
+func (sm *Manager) IsInactiveWithStatus(status *Status, maxDays int) bool {
 	now := time.Now()
 	duration := now.Sub(status.LastSeen)
 	return duration.Hours() > float64(maxDays*24)
 }
 
 // GetInactiveDuration 获取不活跃时长
-func (sm *StateManager) GetInactiveDuration() (time.Duration, error) {
+func (sm *Manager) GetInactiveDuration() (time.Duration, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	return time.Since(sm.lastSeen), nil
 }
 
 // GetLastSeenTime 获取最后活跃时间
-func (sm *StateManager) GetLastSeenTime() (time.Time, error) {
+func (sm *Manager) GetLastSeenTime() (time.Time, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	return sm.lastSeen, nil
 }
 
 // GetSystemSettings 获取系统设置
-func (sm *StateManager) GetSystemSettings() (*config.SystemConfig, error) {
+func (sm *Manager) GetSystemSettings() (*config.SystemConfig, error) {
 	systemConfig := sm.configMgr.GetSystemConfig()
 	return &systemConfig, nil
 }
 
 // UpdateSystemSettings 更新系统设置
-func (sm *StateManager) UpdateSystemSettings(settings *config.SystemConfig) error {
+func (sm *Manager) UpdateSystemSettings(settings *config.SystemConfig) error {
 	// 更新配置文件
 	sm.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
 	sm.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
@@ -103,7 +105,7 @@ func (sm *StateManager) UpdateSystemSettings(settings *config.SystemConfig) erro
 }
 
 // ReadPosthumousPapers 从文件读取遗书内容
-func (sm *StateManager) ReadPosthumousPapers() (string, error) {
+func (sm *Manager) ReadPosthumousPapers() (string, error) {
 	// 检查文件是否存在
 	if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) {
 		return "", fmt.Errorf("posthumous papers file not found: %s", sm.posthumousFile)
@@ -119,7 +121,7 @@ func (sm *StateManager) ReadPosthumousPapers() (string, error) {
 }
 
 // ShouldSendWillMessage 检查是否应该发送遗书消息
-func (sm *StateManager) ShouldSendWillMessage() (bool, error) {
+func (sm *Manager) ShouldSendWillMessage() (bool, error) {
 	systemConfig := sm.configMgr.GetSystemConfig()
 
 	// 如果通知功能被禁用，则不发送
@@ -143,13 +145,13 @@ func (sm *StateManager) ShouldSendWillMessage() (bool, error) {
 }
 
 // MarkWillAsSent 标记遗书为已发送
-func (sm *StateManager) MarkWillAsSent() error {
+func (sm *Manager) MarkWillAsSent() error {
 	sm.logger.Info("Will message has been sent")
 	return nil
 }
 
 // GetUnsentWillMessages 检查是否有未发送的遗书文件
-func (sm *StateManager) GetUnsentWillMessages() (bool, error) {
+func (sm *Manager) GetUnsentWillMessages() (bool, error) {
 	// 检查文件是否存在
 	if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) {
 		return false, fmt.Errorf("posthumous papers file not found")
@@ -158,7 +160,7 @@ func (sm *StateManager) GetUnsentWillMessages() (bool, error) {
 }
 
 // GetHealthStatus 获取健康状态
-func (sm *StateManager) GetHealthStatus() map[string]any {
+func (sm *Manager) GetHealthStatus() map[string]any {
 	systemConfig := sm.configMgr.GetSystemConfig()
 
 	sm.mu.RLock()
@@ -182,7 +184,7 @@ func (sm *StateManager) GetHealthStatus() map[string]any {
 }
 
 // LogStateChange 记录状态变化
-func (sm *StateManager) LogStateChange(action, details string) {
+func (sm *Manager) LogStateChange(action, details string) {
 	sm.logger.WithFields(logrus.Fields{
 		"action":  action,
 		"details": details,
@@ -191,7 +193,7 @@ func (sm *StateManager) LogStateChange(action, details string) {
 }
 
 // GetStats 获取统计信息
-func (sm *StateManager) GetStats() (map[string]any, error) {
+func (sm *Manager) GetStats() (map[string]any, error) {
 	systemConfig := sm.configMgr.GetSystemConfig()
 
 	// 检查遗书文件是否存在

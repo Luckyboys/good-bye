@@ -11,18 +11,18 @@ import (
 
 // TaskScheduler 任务调度器
 type TaskScheduler struct {
-	stateMgr  *state.StateManager
-	emailSvc  *email.EmailService
-	configMgr *config.ConfigManager
+	stateMgr  *state.Manager
+	emailSvc  *email.Service
+	configMgr *config.Manager
 	logger    *logrus.Logger
 	exitChan  <-chan struct{}
 }
 
 // NewTaskScheduler 创建新的任务调度器
 func NewTaskScheduler(
-	stateMgr *state.StateManager,
-	emailSvc *email.EmailService,
-	configMgr *config.ConfigManager,
+	stateMgr *state.Manager,
+	emailSvc *email.Service,
+	configMgr *config.Manager,
 	logger *logrus.Logger,
 	exitChan <-chan struct{},
 ) *TaskScheduler {

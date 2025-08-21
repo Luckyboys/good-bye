@@ -12,47 +12,49 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type EmailService struct {
-	config *config.ConfigManager
-	state  *state.StateManager
+// Service 邮件服务
+type Service struct {
+	config *config.Manager
+	state  *state.Manager
 	logger *logrus.Logger
 }
 
-func NewEmailService(cfg *config.ConfigManager, stateMgr *state.StateManager, logger *logrus.Logger) *EmailService {
-	return &EmailService{
+// NewEmailService 创建新的邮件服务
+func NewEmailService(cfg *config.Manager, stateMgr *state.Manager, logger *logrus.Logger) *Service {
+	return &Service{
 		config: cfg,
 		state:  stateMgr,
 		logger: logger,
 	}
 }
 
-// EmailMessage 邮件消息结构
-type EmailMessage struct {
+// Message 邮件消息结构
+type Message struct {
 	To      string
 	Subject string
 	Content string
 	IsHTML  bool
 }
 
-// EmailResult 邮件发送结果
-type EmailResult struct {
+// Result 邮件发送结果
+type Result struct {
 	Success bool
 	Message string
 	Error   error
 }
 
 // SendTestEmail 发送测试邮件
-func (es *EmailService) SendTestEmail() *EmailResult {
+func (es *Service) SendTestEmail() *Result {
 	testEmail := es.config.GetString("email.test_email")
 	if testEmail == "" {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "测试邮箱地址未配置",
 			Error:   fmt.Errorf("test email not configured"),
 		}
 	}
 
-	message := EmailMessage{
+	message := Message{
 		To:      testEmail,
 		Subject: "遗书服务测试邮件",
 		Content: es.generateTestEmailContent(),
@@ -63,12 +65,12 @@ func (es *EmailService) SendTestEmail() *EmailResult {
 }
 
 // SendWillMessage 发送遗书邮件（从文件读取内容）
-func (es *EmailService) SendWillMessage() *EmailResult {
+func (es *Service) SendWillMessage() *Result {
 	// 从文件读取遗书内容
 	content, err := es.state.ReadPosthumousPapers()
 	if err != nil {
 		es.logger.WithError(err).Error("Failed to read posthumous papers file")
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "读取遗书文件失败",
 			Error:   err,
@@ -78,7 +80,7 @@ func (es *EmailService) SendWillMessage() *EmailResult {
 	// 获取收件人邮箱列表
 	recipients := es.getWillRecipients()
 	if len(recipients) == 0 {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "未配置收件人邮箱",
 			Error:   fmt.Errorf("no recipients configured"),
@@ -93,7 +95,7 @@ func (es *EmailService) SendWillMessage() *EmailResult {
 	successCount := 0
 
 	for _, recipient := range recipients {
-		message := EmailMessage{
+		message := Message{
 			To:      recipient,
 			Subject: "遗书通知 - 重要信息",
 			Content: emailContent,
@@ -110,14 +112,14 @@ func (es *EmailService) SendWillMessage() *EmailResult {
 	}
 
 	if successCount == 0 {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "所有邮件发送失败",
 			Error:   lastError,
 		}
 	}
 
-	return &EmailResult{
+	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("成功发送 %d/%d 封邮件", successCount, len(recipients)),
 		Error:   nil,
@@ -125,15 +127,15 @@ func (es *EmailService) SendWillMessage() *EmailResult {
 }
 
 // sendEmail 发送邮件
-func (es *EmailService) sendEmail(message EmailMessage) *EmailResult {
+func (es *Service) sendEmail(message Message) *Result {
 	return es.doSendEmail(message)
 }
 
 // doSendEmail 实际发送邮件
-func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
+func (es *Service) doSendEmail(message Message) *Result {
 	// 验证邮件配置
 	if err := es.validateEmailConfig(); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "邮件配置验证失败",
 			Error:   err,
@@ -167,7 +169,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 	client, err := smtp.Dial(addr)
 	if err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "连接SMTP服务器失败",
 			Error:   err,
@@ -177,7 +179,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 
 	// 启用TLS
 	if err := client.StartTLS(tlsConfig); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "启用TLS失败",
 			Error:   err,
@@ -186,7 +188,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 
 	// 认证
 	if err := client.Auth(auth); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "SMTP认证失败",
 			Error:   err,
@@ -195,7 +197,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 
 	// 设置发件人
 	if err := client.Mail(fromEmail); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "设置发件人失败",
 			Error:   err,
@@ -204,7 +206,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 
 	// 设置收件人
 	if err := client.Rcpt(message.To); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "设置收件人失败",
 			Error:   err,
@@ -214,7 +216,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 	// 发送邮件内容
 	wc, err := client.Data()
 	if err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "获取邮件写入器失败",
 			Error:   err,
@@ -224,7 +226,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 
 	// 写入邮件内容
 	if _, err := fmt.Fprint(wc, content); err != nil {
-		return &EmailResult{
+		return &Result{
 			Success: false,
 			Message: "写入邮件内容失败",
 			Error:   err,
@@ -236,7 +238,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 		"subject": message.Subject,
 	}).Info("Email sent successfully")
 
-	return &EmailResult{
+	return &Result{
 		Success: true,
 		Message: "sent",
 		Error:   nil,
@@ -244,7 +246,7 @@ func (es *EmailService) doSendEmail(message EmailMessage) *EmailResult {
 }
 
 // validateEmailConfig 验证邮件配置
-func (es *EmailService) validateEmailConfig() error {
+func (es *Service) validateEmailConfig() error {
 	smtpHost := es.config.GetString("email.smtp_host")
 	smtpPort := es.config.GetInt("email.smtp_port")
 	username := es.config.GetString("email.username")
@@ -270,7 +272,7 @@ func (es *EmailService) validateEmailConfig() error {
 }
 
 // buildHTMLEmail 构建HTML邮件
-func (es *EmailService) buildHTMLEmail(subject, content, toEmail string) string {
+func (es *Service) buildHTMLEmail(subject, content, toEmail string) string {
 	var builder strings.Builder
 
 	fromEmail := es.config.GetString("email.from_email")
@@ -286,7 +288,7 @@ func (es *EmailService) buildHTMLEmail(subject, content, toEmail string) string 
 }
 
 // buildTextEmail 构建纯文本邮件
-func (es *EmailService) buildTextEmail(subject, content, toEmail string) string {
+func (es *Service) buildTextEmail(subject, content, toEmail string) string {
 	var builder strings.Builder
 
 	fromEmail := es.config.GetString("email.from_email")
@@ -301,7 +303,7 @@ func (es *EmailService) buildTextEmail(subject, content, toEmail string) string 
 }
 
 // generateTestEmailContent 生成测试邮件内容
-func (es *EmailService) generateTestEmailContent() string {
+func (es *Service) generateTestEmailContent() string {
 	return fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -337,7 +339,7 @@ func (es *EmailService) generateTestEmailContent() string {
 }
 
 // generateWillEmailContentFromFile 从文件内容生成遗书邮件内容
-func (es *EmailService) generateWillEmailContentFromFile(content string) string {
+func (es *Service) generateWillEmailContentFromFile(content string) string {
 	return fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -385,7 +387,7 @@ func (es *EmailService) generateWillEmailContentFromFile(content string) string 
 }
 
 // getWillRecipients 获取遗书收件人列表
-func (es *EmailService) getWillRecipients() []string {
+func (es *Service) getWillRecipients() []string {
 	recipients := make([]string, 0)
 
 	// 从配置中获取收件人
@@ -398,13 +400,13 @@ func (es *EmailService) getWillRecipients() []string {
 }
 
 // RetryFailedEmails 重试发送失败的邮件
-func (es *EmailService) RetryFailedEmails() error {
+func (es *Service) RetryFailedEmails() error {
 	// 由于不再存储邮件记录，此方法不再需要
 	return nil
 }
 
 // GetEmailStats 获取邮件统计信息
-func (es *EmailService) GetEmailStats() (map[string]any, error) {
+func (es *Service) GetEmailStats() (map[string]any, error) {
 	// 由于不再存储邮件记录，返回空统计
 	stats := map[string]any{
 		"total_emails":   int64(0),
@@ -418,7 +420,7 @@ func (es *EmailService) GetEmailStats() (map[string]any, error) {
 }
 
 // UpdateEmailConfig 更新邮件配置
-func (es *EmailService) UpdateEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) error {
+func (es *Service) UpdateEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) error {
 	// 更新配置
 	es.config.Viper.Set("email.smtp_host", smtpHost)
 	es.config.Viper.Set("email.smtp_port", smtpPort)
@@ -438,7 +440,7 @@ func (es *EmailService) UpdateEmailConfig(smtpHost string, smtpPort int, usernam
 }
 
 // TestEmailConfig 测试邮件配置
-func (es *EmailService) TestEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) *EmailResult {
+func (es *Service) TestEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) *Result {
 	// 临时使用新的配置发送测试邮件
 	oldSMTPHost := es.config.GetString("email.smtp_host")
 	oldSMTPPort := es.config.GetInt("email.smtp_port")
@@ -465,7 +467,7 @@ func (es *EmailService) TestEmailConfig(smtpHost string, smtpPort int, username,
 		es.config.Viper.Set("email.test_email", oldTestEmail)
 	}()
 
-	message := EmailMessage{
+	message := Message{
 		To:      testEmail,
 		Subject: "邮件配置测试",
 		Content: es.generateTestEmailContent(),

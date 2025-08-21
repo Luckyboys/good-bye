@@ -13,14 +13,14 @@ import (
 
 // Handler API处理器
 type Handler struct {
-	stateMgr  *state.StateManager
-	emailSvc  *email.EmailService
-	configMgr *config.ConfigManager
+	stateMgr  *state.Manager
+	emailSvc  *email.Service
+	configMgr *config.Manager
 	logger    *logrus.Logger
 }
 
 // NewAPIHandler 创建新的API处理器
-func NewAPIHandler(stateMgr *state.StateManager, emailSvc *email.EmailService, configMgr *config.ConfigManager, logger *logrus.Logger) *Handler {
+func NewAPIHandler(stateMgr *state.Manager, emailSvc *email.Service, configMgr *config.Manager, logger *logrus.Logger) *Handler {
 	return &Handler{
 		stateMgr:  stateMgr,
 		emailSvc:  emailSvc,
