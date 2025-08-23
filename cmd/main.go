@@ -110,22 +110,19 @@ func main() {
 	logger.Info("Shutting down server...")
 
 	// 执行清理工作
-	if err := cleanup(logger, exitChan); err != nil {
-		logger.WithError(err).Error("Failed to cleanup")
-	}
+	cleanup(logger, exitChan)
 
 	logger.Info("Server exited")
 }
 
 // cleanup 清理资源
-func cleanup(logger *logrus.Logger, exitChan chan struct{}) error {
+func cleanup(logger *logrus.Logger, exitChan chan struct{}) {
 	logger.Info("Performing cleanup...")
 
 	// 关闭退出通道，通知所有后台任务退出
 	close(exitChan)
 
 	logger.Info("Cleanup completed")
-	return nil
 }
 
 func setLogConfig(logger *logrus.Logger, configMgr *config.Manager) {

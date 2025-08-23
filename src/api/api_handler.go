@@ -31,10 +31,10 @@ func NewAPIHandler(stateMgr *state.Manager, emailSvc *email.Service, configMgr *
 
 // Response 标准API响应结构
 type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // HealthCheck 健康检查
@@ -68,7 +68,7 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	response := Response{
 		Success: true,
 		Message: "签到成功",
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"timestamp": time.Now().Format(time.RFC3339),
 		},
 	}
@@ -114,7 +114,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 		return
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"last_seen":         status.LastSeen.Format(time.RFC3339),
 		"inactive_duration": inactiveDuration.String(),
 		"is_inactive":       h.stateMgr.IsInactiveWithStatus(status, settings.MaxInactiveDays),
@@ -213,7 +213,7 @@ func (h *Handler) GetWillMessages(c *gin.Context) {
 		return
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"file_exists": true,
 		"content":     content,
 		"message":     "遗书内容已从文件读取",
@@ -287,7 +287,7 @@ func (h *Handler) GetEmailConfig(c *gin.Context) {
 
 // UpdateEmailConfig 更新邮件配置
 func (h *Handler) UpdateEmailConfig(c *gin.Context) {
-	var emailConfig map[string]interface{}
+	var emailConfig map[string]any
 	if err := c.ShouldBindJSON(&emailConfig); err != nil {
 		response := Response{
 			Success: false,
@@ -329,7 +329,7 @@ func (h *Handler) UpdateEmailConfig(c *gin.Context) {
 
 // TestEmailConfig 测试邮件配置
 func (h *Handler) TestEmailConfig(c *gin.Context) {
-	var emailConfig map[string]interface{}
+	var emailConfig map[string]any
 	if err := c.ShouldBindJSON(&emailConfig); err != nil {
 		response := Response{
 			Success: false,

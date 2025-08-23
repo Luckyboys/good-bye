@@ -198,18 +198,18 @@ func (rm *RetryManager) CancelRetry(retryKey string) {
 }
 
 // GetRetryStatus 获取重试状态
-func (rm *RetryManager) GetRetryStatus() map[string]interface{} {
+func (rm *RetryManager) GetRetryStatus() map[string]any {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	status := make(map[string]interface{})
+	status := make(map[string]any)
 	status["active_retries"] = len(rm.activeRetries)
 	status["max_retry_count"] = rm.maxRetryCount
 	status["max_retry_duration"] = rm.maxRetryDuration.String()
 
-	retries := make([]map[string]interface{}, 0)
+	retries := make([]map[string]any, 0)
 	for key, ctx := range rm.activeRetries {
-		retryInfo := map[string]interface{}{
+		retryInfo := map[string]any{
 			"retry_key":       key,
 			"to":              ctx.Message.To,
 			"subject":         ctx.Message.Subject,

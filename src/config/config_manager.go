@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -81,7 +82,7 @@ func (cm *Manager) LoadConfig() error {
 
 	// 尝试读取配置文件
 	if err := cm.Viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			// 配置文件不存在，创建默认配置
 			cm.logger.Info("Config file not found, creating default config")
 			if err := cm.createDefaultConfig(); err != nil {
@@ -140,7 +141,7 @@ deployment:
 `
 
 	// 写入配置文件
-	if err := os.WriteFile(configPath, []byte(defaultConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(defaultConfig), 0600); err != nil {
 		return fmt.Errorf("failed to write default config file: %w", err)
 	}
 

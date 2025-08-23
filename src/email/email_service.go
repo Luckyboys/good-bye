@@ -260,6 +260,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 		ServerName:         smtpHost,
+		MinVersion:         tls.VersionTLS12,
 	}
 
 	// 连接SMTP服务器
@@ -581,7 +582,7 @@ func (es *Service) GetEmailStats() (map[string]any, error) {
 }
 
 // GetRetryStatus 获取重试状态
-func (es *Service) GetRetryStatus() map[string]interface{} {
+func (es *Service) GetRetryStatus() map[string]any {
 	if es.retryManager != nil {
 		return es.retryManager.GetRetryStatus()
 	}

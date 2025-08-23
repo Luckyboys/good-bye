@@ -257,8 +257,8 @@ func (sm *Manager) GetStats() (map[string]any, error) {
 		hasPosthumousFile = true
 	}
 
-	var totalWills int64 = 0
-	var unsentWills int64 = 0
+	var totalWills int64
+	var unsentWills int64
 
 	if hasPosthumousFile {
 		totalWills = 1
