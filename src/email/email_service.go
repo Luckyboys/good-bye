@@ -14,18 +14,26 @@ import (
 
 // Service 邮件服务
 type Service struct {
-	config *config.Manager
-	state  *state.Manager
-	logger *logrus.Logger
+	config       *config.Manager
+	state        *state.Manager
+	logger       *logrus.Logger
+	retryManager *RetryManager
+	sendFunc     func(Message) *Result
 }
 
 // NewEmailService 创建新的邮件服务
 func NewEmailService(cfg *config.Manager, stateMgr *state.Manager, logger *logrus.Logger) *Service {
-	return &Service{
+	service := &Service{
 		config: cfg,
 		state:  stateMgr,
 		logger: logger,
 	}
+
+	service.retryManager = NewRetryManager(logger)
+	service.retryManager.SetSendFunc(service.doSendEmail)
+	service.sendFunc = service.doSendEmail
+
+	return service
 }
 
 // Message 邮件消息结构
@@ -179,7 +187,45 @@ func (es *Service) SendWillToFirstRecipient() *Result {
 
 // sendEmail 发送邮件
 func (es *Service) sendEmail(message Message) *Result {
-	return es.doSendEmail(message)
+	// 立即尝试发送一次
+	result := es.doSendEmail(message)
+	if result.Success {
+		return result
+	}
+
+	// 如果发送失败，启动重试机制
+	es.logger.WithError(result.Error).
+		WithField("to", message.To).
+		WithField("subject", message.Subject).
+		Warn("Email send failed, starting retry mechanism")
+
+	// 检查重试管理器是否初始化
+	if es.retryManager == nil {
+		es.logger.Error("Retry manager is not initialized")
+		return result
+	}
+
+	// 启动重试
+	es.logger.Info("Starting retry manager...")
+	retrySuccess := make(chan bool, 1)
+	retryError := make(chan error, 1)
+
+	es.retryManager.StartRetry(message,
+		func() {
+			es.logger.Info("Retry succeeded!")
+			retrySuccess <- true
+		},
+		func(err error) {
+			es.logger.WithError(err).Error("Retry failed")
+			retryError <- err
+		},
+	)
+
+	es.logger.Info("Retry manager started successfully")
+
+	// 等待重试结果（这里不阻塞，直接返回初始结果）
+	// 实际的重试是异步进行的
+	return result
 }
 
 // doSendEmail 实际发送邮件
@@ -532,6 +578,22 @@ func (es *Service) GetEmailStats() (map[string]any, error) {
 	}
 
 	return stats, nil
+}
+
+// GetRetryStatus 获取重试状态
+func (es *Service) GetRetryStatus() map[string]interface{} {
+	if es.retryManager != nil {
+		return es.retryManager.GetRetryStatus()
+	}
+	return nil
+}
+
+// StopAllRetries 停止所有重试
+func (es *Service) StopAllRetries() {
+	if es.retryManager != nil {
+		es.retryManager.StopAllRetries()
+		es.logger.Info("All email retries stopped")
+	}
 }
 
 // UpdateEmailConfig 更新邮件配置

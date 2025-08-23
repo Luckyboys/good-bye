@@ -49,6 +49,16 @@ func (ts *TaskScheduler) Start() {
 	ts.startConfigReloadTask()
 }
 
+// Stop 停止所有后台任务
+func (ts *TaskScheduler) Stop() {
+	ts.logger.Info("Stopping all background tasks")
+
+	// 停止所有邮件重试
+	ts.emailSvc.StopAllRetries()
+
+	ts.logger.Info("All background tasks stopped")
+}
+
 // startStatusCheckTask 启动状态检查任务
 func (ts *TaskScheduler) startStatusCheckTask() {
 	systemConfig := ts.configMgr.GetSystemConfig()
@@ -60,6 +70,12 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 		for {
 			select {
 			case <-ticker.C:
+				// 检查状态检查是否已停止
+				if ts.stateMgr.IsCheckingStopped() {
+					ts.logger.Debug("Status checking is stopped, skipping check")
+					continue
+				}
+
 				// 检查是否应该发送遗书
 				shouldSend, err := ts.stateMgr.ShouldSendWillMessage()
 				if err != nil {
@@ -81,7 +97,7 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 							if err := ts.stateMgr.MarkWillAsSent(); err != nil {
 								ts.logger.WithError(err).Error("Failed to mark will as sent")
 							}
-							ts.logger.Info("Will message sent successfully")
+							ts.logger.Info("Will message sent successfully, status checking stopped")
 						} else {
 							ts.logger.WithError(result.Error).Error("Failed to send will message")
 						}
@@ -98,16 +114,16 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 // startEmailRetryTask 启动邮件重试任务
 func (ts *TaskScheduler) startEmailRetryTask() {
 	go func() {
-		ticker := time.NewTicker(30 * time.Minute) // 每30分钟重试一次
+		ticker := time.NewTicker(5 * time.Minute) // 每5分钟记录一次重试状态
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
-				if err := ts.emailSvc.RetryFailedEmails(); err != nil {
-					ts.logger.WithError(err).Error("Failed to retry failed emails")
-				} else {
-					ts.logger.Info("Email retry task completed")
+				// 记录重试状态
+				if retryStatus := ts.emailSvc.GetRetryStatus(); retryStatus != nil {
+					ts.logger.WithField("active_retries", retryStatus["active_retries"]).
+						Debug("Email retry status check")
 				}
 			case <-ts.exitChan:
 				ts.logger.Info("Email retry task exiting")

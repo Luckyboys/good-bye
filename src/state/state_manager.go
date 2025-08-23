@@ -12,20 +12,24 @@ import (
 
 // Manager 状态管理器
 type Manager struct {
-	configMgr      *config.Manager
-	logger         *logrus.Logger
-	posthumousFile string
-	lastSeen       time.Time
-	mu             sync.RWMutex
+	configMgr       *config.Manager
+	logger          *logrus.Logger
+	posthumousFile  string
+	lastSeen        time.Time
+	mu              sync.RWMutex
+	checkingStopped bool
+	willSent        bool
 }
 
 // NewStateManager 创建新的状态管理器
 func NewStateManager(configMgr *config.Manager, logger *logrus.Logger, posthumousFile string) *Manager {
 	return &Manager{
-		configMgr:      configMgr,
-		logger:         logger,
-		posthumousFile: posthumousFile,
-		lastSeen:       time.Now(), // 初始化为当前时间
+		configMgr:       configMgr,
+		logger:          logger,
+		posthumousFile:  posthumousFile,
+		lastSeen:        time.Now(), // 初始化为当前时间
+		checkingStopped: false,
+		willSent:        false,
 	}
 }
 
@@ -119,6 +123,21 @@ func (sm *Manager) ReadPosthumousPapers() (string, error) {
 
 // ShouldSendWillMessage 检查是否应该发送遗书消息
 func (sm *Manager) ShouldSendWillMessage() (bool, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	// 如果检查已停止，不再发送遗书
+	if sm.checkingStopped {
+		sm.logger.Info("Status checking has been stopped, will not send will message")
+		return false, nil
+	}
+
+	// 如果遗书已发送，不再重复发送
+	if sm.willSent {
+		sm.logger.Info("Will message has already been sent, will not send again")
+		return false, nil
+	}
+
 	// 检查是否处于不活跃状态
 	isInactive, err := sm.IsInactive()
 	if err != nil {
@@ -136,17 +155,64 @@ func (sm *Manager) ShouldSendWillMessage() (bool, error) {
 
 // MarkWillAsSent 标记遗书为已发送
 func (sm *Manager) MarkWillAsSent() error {
-	sm.logger.Info("Will message has been sent")
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	sm.logger.Info("Will message has been sent, stopping status checking")
+	sm.willSent = true
+	sm.checkingStopped = true
+
 	return nil
 }
 
 // GetUnsentWillMessages 检查是否有未发送的遗书文件
 func (sm *Manager) GetUnsentWillMessages() (bool, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	// 如果检查已停止或遗书已发送，不再检查
+	if sm.checkingStopped || sm.willSent {
+		return false, nil
+	}
+
 	// 检查文件是否存在
 	if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) {
 		return false, fmt.Errorf("posthumous papers file not found")
 	}
 	return true, nil
+}
+
+// StopStatusChecking 停止状态检查
+func (sm *Manager) StopStatusChecking() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	sm.logger.Info("Status checking stopped manually")
+	sm.checkingStopped = true
+}
+
+// ResumeStatusChecking 恢复状态检查
+func (sm *Manager) ResumeStatusChecking() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	sm.logger.Info("Status checking resumed")
+	sm.checkingStopped = false
+	// 注意：不重置 willSent 标志，因为遗书发送后不应该恢复检查
+}
+
+// IsCheckingStopped 检查状态检查是否已停止
+func (sm *Manager) IsCheckingStopped() bool {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.checkingStopped
+}
+
+// IsWillSent 检查遗书是否已发送
+func (sm *Manager) IsWillSent() bool {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.willSent
 }
 
 // GetHealthStatus 获取健康状态
