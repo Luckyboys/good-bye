@@ -77,6 +77,7 @@ func (r *Router) setupRoutes() {
 
 		// 邮件相关
 		v1.POST("/email/test", r.apiHandler.SendTestEmail)
+		v1.POST("/email/test-will", r.apiHandler.SendTestWill)
 
 		// 统计信息
 		v1.GET("/stats", r.apiHandler.GetStats)
@@ -84,7 +85,7 @@ func (r *Router) setupRoutes() {
 
 	// 静态文件服务
 	r.engine.Static("/static", "./static")
-	r.engine.LoadHTMLGlob("templates/checkin.html")
+	r.engine.LoadHTMLGlob("templates/*")
 
 	// 首页（签到页面）
 	r.engine.GET("/", func(c *gin.Context) {

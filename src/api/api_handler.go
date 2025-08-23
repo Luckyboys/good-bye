@@ -250,6 +250,28 @@ func (h *Handler) SendTestEmail(c *gin.Context) {
 	}
 }
 
+// SendTestWill 发送测试遗书到第一个收件人
+func (h *Handler) SendTestWill(c *gin.Context) {
+	result := h.emailSvc.SendWillToFirstRecipient()
+
+	if result.Success {
+		h.stateMgr.LogStateChange("send_test_will", "Test will sent successfully")
+		response := Response{
+			Success: true,
+			Message: result.Message,
+		}
+		c.JSON(http.StatusOK, response)
+	} else {
+		h.logger.WithError(result.Error).Error("Failed to send test will")
+		response := Response{
+			Success: false,
+			Message: result.Message,
+			Error:   result.Error.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, response)
+	}
+}
+
 // GetEmailConfig 获取邮件配置
 func (h *Handler) GetEmailConfig(c *gin.Context) {
 	emailConfig := h.configMgr.GetEmailConfig()

@@ -126,6 +126,57 @@ func (es *Service) SendWillMessage() *Result {
 	}
 }
 
+// SendWillToFirstRecipient 发送遗书到第一个收件人（用于测试）
+func (es *Service) SendWillToFirstRecipient() *Result {
+	// 从文件读取遗书内容
+	content, err := es.state.ReadPosthumousPapers()
+	if err != nil {
+		es.logger.WithError(err).Error("Failed to read posthumous papers file")
+		return &Result{
+			Success: false,
+			Message: "读取遗书文件失败",
+			Error:   err,
+		}
+	}
+
+	// 获取收件人邮箱列表
+	recipients := es.getWillRecipients()
+	if len(recipients) == 0 {
+		return &Result{
+			Success: false,
+			Message: "未配置收件人邮箱",
+			Error:   fmt.Errorf("no recipients configured"),
+		}
+	}
+
+	// 获取第一个收件人
+	firstRecipient := recipients[0]
+
+	// 生成邮件内容
+	emailContent := es.generateTestWillEmailContent(content)
+
+	message := Message{
+		To:      firstRecipient,
+		Subject: "【测试】遗书通知 - 重要信息",
+		Content: emailContent,
+		IsHTML:  true,
+	}
+
+	result := es.sendEmail(message)
+	if result.Success {
+		return &Result{
+			Success: true,
+			Message: fmt.Sprintf("测试遗书已发送到 %s", firstRecipient),
+			Error:   nil,
+		}
+	}
+	return &Result{
+		Success: false,
+		Message: fmt.Sprintf("发送测试遗书到 %s 失败", firstRecipient),
+		Error:   result.Error,
+	}
+}
+
 // sendEmail 发送邮件
 func (es *Service) sendEmail(message Message) *Result {
 	return es.doSendEmail(message)
@@ -386,14 +437,78 @@ func (es *Service) generateWillEmailContentFromFile(content string) string {
 `, content, time.Now().Format("2006-01-02 15:04:05"))
 }
 
+// generateTestWillEmailContent 生成测试遗书邮件内容
+func (es *Service) generateTestWillEmailContent(content string) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>【测试】遗书通知 - 重要信息</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ffa500; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; }
+        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
+        .will-content { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #ffa500; margin: 20px 0; }
+        .will-content pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
+        .test-notice { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>【测试】遗书通知</h1>
+        </div>
+        <div class="content">
+            <div class="test-notice">
+                <strong>⚠️ 测试邮件</strong>
+                <p>这是一封测试邮件，用于验证遗书发送功能是否正常工作。</p>
+            </div>
+            
+            <p>尊敬的收件人：</p>
+            <p>此邮件是由生存确认服务自动发送的测试通知。</p>
+            <p>以下是遗书内容的预览：</p>
+            
+            <div class="will-content">
+                <h2>遗书内容预览</h2>
+                <pre>%s</pre>
+            </div>
+            
+            <p><strong>测试发送时间：</strong>%s</p>
+            
+            <p style="color: #666; font-size: 14px;">
+                请注意：这是一封测试邮件。如果您收到此邮件，说明遗书发送功能配置正常。
+            </p>
+        </div>
+        <div class="footer">
+            <p>生存确认服务 - 自动化邮件通知系统</p>
+        </div>
+    </div>
+</body>
+</html>
+`, content, time.Now().Format("2006-01-02 15:04:05"))
+}
+
 // getWillRecipients 获取遗书收件人列表
 func (es *Service) getWillRecipients() []string {
 	recipients := make([]string, 0)
 
-	// 从配置中获取收件人
-	testEmail := es.config.GetString("email.test_email")
-	if testEmail != "" {
-		recipients = append(recipients, testEmail)
+	// 从配置中获取收件人列表
+	emailConfig := es.config.GetEmailConfig()
+	for _, recipient := range emailConfig.Recipients {
+		if recipient.Email != "" {
+			recipients = append(recipients, recipient.Email)
+		}
+	}
+
+	// 如果没有配置收件人，使用测试邮箱作为后备
+	if len(recipients) == 0 {
+		testEmail := es.config.GetString("email.test_email")
+		if testEmail != "" {
+			recipients = append(recipients, testEmail)
+		}
 	}
 
 	return recipients
