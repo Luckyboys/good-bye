@@ -15,6 +15,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// 版本信息（在构建时通过 ldflags 设置）
+var (
+	Version    = "v0.0.1"
+	BuildTime  = "unknown"
+	CommitHash = "unknown"
+)
+
 func main() {
 	// 解析命令行参数
 	var (
@@ -25,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("Good-Bye Service v0.0.1")
+		fmt.Printf("Good-Bye Service %s\n", Version)
 		os.Exit(0)
 	}
 
