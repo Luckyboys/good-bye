@@ -74,7 +74,7 @@ docker-compose up -d
 ### 2. 手动部署
 
 #### 系统要求
-- Go 1.20+
+- Go 1.24+ (已测试版本)
 - 操作系统：Linux/macOS/Windows
 - 内存：至少512MB
 - 磁盘：至少100MB
