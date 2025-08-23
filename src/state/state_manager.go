@@ -14,18 +14,16 @@ import (
 type Manager struct {
 	configMgr      *config.Manager
 	logger         *logrus.Logger
-	dataDir        string
 	posthumousFile string
 	lastSeen       time.Time
 	mu             sync.RWMutex
 }
 
 // NewStateManager 创建新的状态管理器
-func NewStateManager(configMgr *config.Manager, logger *logrus.Logger, dataDir, posthumousFile string) *Manager {
+func NewStateManager(configMgr *config.Manager, logger *logrus.Logger, posthumousFile string) *Manager {
 	return &Manager{
 		configMgr:      configMgr,
 		logger:         logger,
-		dataDir:        dataDir,
 		posthumousFile: posthumousFile,
 		lastSeen:       time.Now(), // 初始化为当前时间
 	}

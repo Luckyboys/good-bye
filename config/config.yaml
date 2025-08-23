@@ -33,6 +33,4 @@ email:
 
 # 部署配置
 deployment:
-  data_dir: "./data"
-  log_dir: "./logs"
   posthumous_papers_file: "./data/posthumous_papers.md"  # 遗书文件路径

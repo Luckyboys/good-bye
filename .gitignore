@@ -80,3 +80,6 @@ tests/
 
 # local files
 config/config.local.yaml
+
+# local init files
+scripts/local/

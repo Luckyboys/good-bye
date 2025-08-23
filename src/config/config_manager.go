@@ -69,8 +69,6 @@ func setDefaults(v *viper.Viper) {
 	})
 
 	// 部署配置
-	v.SetDefault("deployment.data_dir", "./data")
-	v.SetDefault("deployment.log_dir", "./logs")
 	v.SetDefault("deployment.posthumous_papers_file", "./data/posthumous_papers.md")
 }
 
@@ -92,18 +90,6 @@ func (cm *Manager) LoadConfig() error {
 		} else {
 			return fmt.Errorf("failed to read config file: %w", err)
 		}
-	}
-
-	// 确保数据目录存在
-	dataDir := cm.Viper.GetString("deployment.data_dir")
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	// 确保日志目录存在
-	logDir := cm.Viper.GetString("deployment.log_dir")
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
 	cm.logger.Info("Configuration loaded successfully")
@@ -150,8 +136,6 @@ email:
 
 # 部署配置
 deployment:
-  data_dir: "./data"
-  log_dir: "./logs"
   posthumous_papers_file: "./data/posthumous_papers.md"  # 遗书文件路径
 `
 
@@ -195,8 +179,6 @@ func (cm *Manager) GetLogConfig() LogConfig {
 // GetDeploymentConfig 获取部署配置
 func (cm *Manager) GetDeploymentConfig() DeploymentConfig {
 	return DeploymentConfig{
-		DataDir:              cm.Viper.GetString("deployment.data_dir"),
-		LogDir:               cm.Viper.GetString("deployment.log_dir"),
 		PosthumousPapersFile: cm.Viper.GetString("deployment.posthumous_papers_file"),
 	}
 }
@@ -355,8 +337,6 @@ type LogConfig struct {
 
 // DeploymentConfig 部署配置
 type DeploymentConfig struct {
-	DataDir              string `mapstructure:"data_dir"`
-	LogDir               string `mapstructure:"log_dir"`
 	PosthumousPapersFile string `mapstructure:"posthumous_papers_file"`
 }
 

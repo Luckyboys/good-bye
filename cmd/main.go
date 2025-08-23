@@ -66,9 +66,8 @@ func main() {
 	// 不再需要数据库
 
 	// 初始化服务
-	dataDir := configMgr.GetString("deployment.data_dir")
 	posthumousPapersFile := configMgr.GetString("deployment.posthumous_papers_file")
-	stateMgr := state.NewStateManager(configMgr, logger, dataDir, posthumousPapersFile)
+	stateMgr := state.NewStateManager(configMgr, logger, posthumousPapersFile)
 	emailSvc := email.NewEmailService(configMgr, stateMgr, logger)
 
 	// 创建路由器
