@@ -58,30 +58,9 @@ func NewRouter(stateMgr *state.Manager, emailSvc *email.Service, configMgr *conf
 }
 
 func (r *Router) setupRoutes() {
-	// 健康检查
-	r.engine.GET("/health", r.apiHandler.HealthCheck)
-
-	// API路由组
-	v1 := r.engine.Group("/api/v1")
-	{
-		// 状态相关
-		v1.POST("/checkin", r.apiHandler.CheckIn)
-		v1.GET("/status", r.apiHandler.GetStatus)
-
-		// 系统设置
-		v1.GET("/settings", r.apiHandler.GetSystemSettings)
-		v1.PUT("/settings", r.apiHandler.UpdateSystemSettings)
-
-		// 遗书状态
-		v1.GET("/wills", r.apiHandler.GetWillMessages)
-
-		// 邮件相关
-		v1.POST("/email/test", r.apiHandler.SendTestEmail)
-		v1.POST("/email/test-will", r.apiHandler.SendTestWill)
-
-		// 统计信息
-		v1.GET("/stats", r.apiHandler.GetStats)
-	}
+	// 设置API中间件和路由
+	r.apiHandler.SetupMiddleware(r.engine)
+	r.apiHandler.SetupRoutes(r.engine)
 
 	// 静态文件服务
 	r.engine.Static("/static", "./static")
