@@ -9,6 +9,8 @@ import (
 
 	"github.com/Luckyboys/good-bye/src/config"
 	"github.com/Luckyboys/good-bye/src/state"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,8 +97,8 @@ func (es *Service) SendWillMessage() *Result {
 		}
 	}
 
-	// 生成邮件内容
-	emailContent := es.generateWillEmailContentFromFile(content)
+	// 处理遗书内容：如果是Markdown则转换为HTML
+	emailContent := es.processPosthumousContent(content)
 
 	// 发送给所有收件人
 	var lastError error
@@ -160,8 +162,8 @@ func (es *Service) SendWillToFirstRecipient() *Result {
 	// 获取第一个收件人
 	firstRecipient := recipients[0]
 
-	// 生成邮件内容
-	emailContent := es.generateTestWillEmailContent(content)
+	// 处理遗书内容：如果是Markdown则转换为HTML
+	emailContent := es.processPosthumousContent(content)
 
 	message := Message{
 		To:      firstRecipient,
@@ -436,106 +438,128 @@ func (es *Service) generateTestEmailContent() string {
 `, time.Now().Format("2006-01-02 15:04:05"))
 }
 
-// generateWillEmailContentFromFile 从文件内容生成遗书邮件内容
-func (es *Service) generateWillEmailContentFromFile(content string) string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>遗书通知 - 重要信息</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #ff6b6b; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; }
-        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
-        .will-content { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #ff6b6b; margin: 20px 0; }
-        .will-content pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>遗书通知</h1>
-        </div>
-        <div class="content">
-            <p>尊敬的收件人：</p>
-            <p>此邮件是由生存确认服务自动发送的重要通知。</p>
-            <p>由于长时间未检测到用户活动，系统认为需要发送以下重要信息。</p>
-            
-            <div class="will-content">
-                <h2>遗书内容</h2>
-                <pre>%s</pre>
-            </div>
-            
-            <p><strong>发送时间：</strong>%s</p>
-            
-            <p style="color: #666; font-size: 14px;">
-                请注意：这是一封非常重要的通知邮件。如果您对此有任何疑问，请及时联系相关人员。
-            </p>
-        </div>
-        <div class="footer">
-            <p>生存确认服务 - 自动化邮件通知系统</p>
-        </div>
-    </div>
-</body>
-</html>
-`, content, time.Now().Format("2006-01-02 15:04:05"))
+// processPosthumousContent 处理遗书内容，如果是Markdown则转换为HTML
+func (es *Service) processPosthumousContent(content string) string {
+	// 检查是否是Markdown文件（通过文件扩展名或内容特征）
+	if es.isMarkdownContent(content) {
+		return es.convertMarkdownToHTML(content)
+	}
+
+	// 如果不是Markdown，直接返回原内容（纯文本或HTML）
+	return content
 }
 
-// generateTestWillEmailContent 生成测试遗书邮件内容
-func (es *Service) generateTestWillEmailContent(content string) string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
+// isMarkdownContent 检查内容是否为Markdown格式
+func (es *Service) isMarkdownContent(content string) bool {
+	// 简单的Markdown特征检测
+	markdownIndicators := []string{
+		"# ",   // 标题
+		"## ",  // 二级标题
+		"### ", // 三级标题
+		"- ",   // 无序列表
+		"* ",   // 无序列表
+		"1. ",  // 有序列表
+		"[",    // 链接
+		"![",   // 图片
+		"```",  // 代码块
+		"`",    // 行内代码
+		"> ",   // 引用
+		"**",   // 粗体
+		"*",    // 斜体
+		"---",  // 分割线
+	}
+
+	for _, indicator := range markdownIndicators {
+		if strings.Contains(content, indicator) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// convertMarkdownToHTML 将Markdown转换为安全的HTML
+func (es *Service) convertMarkdownToHTML(markdown string) string {
+	// 将Markdown转换为HTML
+	unsafeHTML := blackfriday.Run([]byte(markdown), blackfriday.WithNoExtensions(), blackfriday.WithRenderer(blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags | blackfriday.HrefTargetBlank,
+	})))
+
+	// 使用bluemonday清理HTML，确保安全性
+	policy := bluemonday.UGCPolicy()
+	policy.AllowStandardURLs()
+	policy.AllowStandardAttributes()
+	policy.AllowElements("h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr",
+		"ul", "ol", "li", "blockquote", "pre", "code",
+		"strong", "em", "i", "b", "a", "img",
+		"table", "thead", "tbody", "tr", "th", "td")
+
+	safeHTML := policy.SanitizeBytes(unsafeHTML)
+
+	// 添加基本的HTML文档结构
+	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>【测试】遗书通知 - 重要信息</title>
+    <title>遗书</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #ffa500; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; }
-        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
-        .will-content { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #ffa500; margin: 20px 0; }
-        .will-content pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
-        .test-notice { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background-color: #fff;
+        }
+        h1, h2, h3, h4, h5, h6 { color: #2c3e50; margin-top: 2em; margin-bottom: 1em; }
+        h1 { border-bottom: 2px solid #3498db; padding-bottom: 0.3em; }
+        h2 { border-bottom: 1px solid #bdc3c7; padding-bottom: 0.2em; }
+        p { margin-bottom: 1em; }
+        pre { 
+            background-color: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            border-radius: 4px; 
+            padding: 16px; 
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        code { 
+            background-color: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            border-radius: 3px; 
+            padding: 2px 4px; 
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        blockquote { 
+            border-left: 4px solid #3498db; 
+            margin: 1em 0; 
+            padding-left: 1em; 
+            color: #7f8c8d; 
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%%; 
+            margin: 1em 0; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+        }
+        img { max-width: 100%%; height: auto; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>【测试】遗书通知</h1>
-        </div>
-        <div class="content">
-            <div class="test-notice">
-                <strong>⚠️ 测试邮件</strong>
-                <p>这是一封测试邮件，用于验证遗书发送功能是否正常工作。</p>
-            </div>
-            
-            <p>尊敬的收件人：</p>
-            <p>此邮件是由生存确认服务自动发送的测试通知。</p>
-            <p>以下是遗书内容的预览：</p>
-            
-            <div class="will-content">
-                <h2>遗书内容预览</h2>
-                <pre>%s</pre>
-            </div>
-            
-            <p><strong>测试发送时间：</strong>%s</p>
-            
-            <p style="color: #666; font-size: 14px;">
-                请注意：这是一封测试邮件。如果您收到此邮件，说明遗书发送功能配置正常。
-            </p>
-        </div>
-        <div class="footer">
-            <p>生存确认服务 - 自动化邮件通知系统</p>
-        </div>
-    </div>
+    %s
 </body>
-</html>
-`, content, time.Now().Format("2006-01-02 15:04:05"))
+</html>`, string(safeHTML))
 }
 
 // getWillRecipients 获取遗书收件人列表

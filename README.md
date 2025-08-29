@@ -189,7 +189,7 @@ deployment:
 
 ### 邮件服务
 - `POST /api/v1/email/test` - 发送测试邮件
-- `POST /api/v1/email/test-will` - 发送测试遗书（新功能）
+- `POST /api/v1/wills/test-send` - 发送测试遗书（新功能）
 - `GET /api/v1/email/config` - 获取邮件配置
 - `PUT /api/v1/email/config` - 更新邮件配置
 

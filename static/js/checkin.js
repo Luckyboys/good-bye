@@ -205,7 +205,7 @@ async function doSendTestWill() {
         
         showNotification('正在发送测试遗书...', 'warning');
         
-        const result = await apiRequest('/email/test-will', {
+        const result = await apiRequest('/wills/test-send', {
             method: 'POST'
         });
         
