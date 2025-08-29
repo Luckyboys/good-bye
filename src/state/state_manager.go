@@ -64,14 +64,14 @@ func (sm *Manager) IsInactive() (bool, error) {
 	defer sm.mu.RUnlock()
 	now := time.Now()
 	duration := now.Sub(sm.lastSeen)
-	return duration.Hours() > float64(systemConfig.MaxInactiveDays*24), nil
+	return duration > systemConfig.MaxInactiveTime, nil
 }
 
 // IsInactiveWithStatus 检查给定状态是否处于不活跃状态
-func (sm *Manager) IsInactiveWithStatus(status *Status, maxDays int) bool {
+func (sm *Manager) IsInactiveWithStatus(status *Status, maxTime time.Duration) bool {
 	now := time.Now()
 	duration := now.Sub(status.LastSeen)
-	return duration.Hours() > float64(maxDays*24)
+	return duration > maxTime
 }
 
 // GetInactiveDuration 获取不活跃时长
@@ -98,7 +98,7 @@ func (sm *Manager) GetSystemSettings() (*config.SystemConfig, error) {
 func (sm *Manager) UpdateSystemSettings(settings *config.SystemConfig) error {
 	// 更新配置文件
 	sm.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
-	sm.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
+	sm.configMgr.Viper.Set("system.max_inactive_time", settings.MaxInactiveTime)
 	sm.configMgr.Viper.Set("system.timezone", settings.Timezone)
 
 	configPath := sm.configMgr.Viper.ConfigFileUsed()
@@ -224,14 +224,14 @@ func (sm *Manager) GetHealthStatus() map[string]any {
 	inactiveDuration := time.Since(sm.lastSeen)
 	now := time.Now()
 	duration := now.Sub(sm.lastSeen)
-	isInactive := duration.Hours() > float64(systemConfig.MaxInactiveDays*24)
+	isInactive := duration > systemConfig.MaxInactiveTime
 
 	health := map[string]any{
 		"status":            "healthy",
 		"last_seen":         sm.lastSeen.Format(time.RFC3339),
 		"inactive_duration": inactiveDuration.String(),
 		"is_inactive":       isInactive,
-		"max_inactive_days": systemConfig.MaxInactiveDays,
+		"max_inactive_time": systemConfig.MaxInactiveTime,
 		"check_interval":    systemConfig.CheckInterval,
 	}
 

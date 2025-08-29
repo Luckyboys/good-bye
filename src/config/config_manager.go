@@ -48,7 +48,7 @@ func setDefaults(v *viper.Viper) {
 
 	// 系统配置
 	v.SetDefault("system.check_interval", time.Hour*24)
-	v.SetDefault("system.max_inactive_days", 7)
+	v.SetDefault("system.max_inactive_time", time.Hour*24*7)
 	v.SetDefault("system.timezone", "Asia/Shanghai")
 
 	// 日志配置
@@ -112,7 +112,7 @@ server:
 # 系统配置
 system:
   check_interval: "24h"     # 检查间隔（时间间隔格式）
-  max_inactive_days: 7      # 最大不活跃天数
+  max_inactive_time: "168h"      # 最大不活跃时间（时间间隔格式）
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置
@@ -163,7 +163,7 @@ func (cm *Manager) GetServerConfig() ServerConfig {
 func (cm *Manager) GetSystemConfig() SystemConfig {
 	return SystemConfig{
 		CheckInterval:   cm.Viper.GetDuration("system.check_interval"),
-		MaxInactiveDays: cm.Viper.GetInt("system.max_inactive_days"),
+		MaxInactiveTime: cm.Viper.GetDuration("system.max_inactive_time"),
 		Timezone:        cm.Viper.GetString("system.timezone"),
 	}
 }
@@ -279,10 +279,10 @@ func (cm *Manager) ValidateConfig() error {
 		return fmt.Errorf("invalid check interval: %v", checkInterval)
 	}
 
-	// 验证最大不活跃天数
-	maxInactiveDays := cm.Viper.GetInt("system.max_inactive_days")
-	if maxInactiveDays < 1 {
-		return fmt.Errorf("invalid max inactive days: %d", maxInactiveDays)
+	// 验证最大不活跃时间
+	maxInactiveTime := cm.Viper.GetDuration("system.max_inactive_time")
+	if maxInactiveTime == 0 {
+		return fmt.Errorf("invalid max inactive time: %v", maxInactiveTime)
 	}
 
 	// 验证遗书文件路径
@@ -325,7 +325,7 @@ type ServerConfig struct {
 // SystemConfig 系统配置
 type SystemConfig struct {
 	CheckInterval   time.Duration `mapstructure:"check_interval"`
-	MaxInactiveDays int           `mapstructure:"max_inactive_days"`
+	MaxInactiveTime time.Duration `mapstructure:"max_inactive_time"`
 	Timezone        string        `mapstructure:"timezone"`
 }
 

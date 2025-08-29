@@ -53,8 +53,8 @@ func (h *StatusHandler) GetStatus(c *gin.Context) {
 	data := map[string]any{
 		"last_seen":         status.LastSeen.Format(time.RFC3339),
 		"inactive_duration": inactiveDuration.String(),
-		"is_inactive":       h.stateMgr.IsInactiveWithStatus(status, settings.MaxInactiveDays),
-		"max_inactive_days": settings.MaxInactiveDays,
+		"is_inactive":       h.stateMgr.IsInactiveWithStatus(status, settings.MaxInactiveTime),
+		"max_inactive_time": settings.MaxInactiveTime,
 		"check_interval":    settings.CheckInterval,
 	}
 

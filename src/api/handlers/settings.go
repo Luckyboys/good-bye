@@ -60,7 +60,7 @@ func (h *SettingsHandler) UpdateSystemSettings(c *gin.Context) {
 		return
 	}
 
-	if settings.MaxInactiveDays <= 0 {
+	if settings.MaxInactiveTime <= 0 {
 		response.BadRequest(c, "最大不活跃天数必须大于0", nil)
 		return
 	}
@@ -73,7 +73,7 @@ func (h *SettingsHandler) UpdateSystemSettings(c *gin.Context) {
 
 	// 同步到配置文件
 	h.configMgr.Viper.Set("system.check_interval", settings.CheckInterval)
-	h.configMgr.Viper.Set("system.max_inactive_days", settings.MaxInactiveDays)
+	h.configMgr.Viper.Set("system.max_inactive_time", settings.MaxInactiveTime)
 	h.configMgr.Viper.Set("system.timezone", settings.Timezone)
 
 	configPath := h.configMgr.Viper.ConfigFileUsed()
