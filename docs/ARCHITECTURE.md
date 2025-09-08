@@ -17,10 +17,10 @@
 ### 2. API处理层 (`src/api/`)
 - **职责**: 处理HTTP请求和响应
 - **组件**:
-  - 请求处理器
-  - 响应格式化
-  - 错误处理
-  - 参数验证
+  - 请求处理器 (`src/api/handlers/`)
+  - 中间件 (`src/api/middleware/`)
+  - 响应格式化 (`src/api/response/`)
+  - 错误处理和参数验证
 
 ### 3. 业务逻辑层 (`src/state/`)
 - **职责**: 状态管理和业务逻辑
@@ -31,8 +31,9 @@
   - 事务管理
 
 ### 4. 服务层
-- **邮件服务** (`src/email/`): 处理邮件发送
+- **邮件服务** (`src/email/`): 处理邮件发送、重试机制、模板管理
 - **配置服务** (`src/config/`): 配置文件管理和验证
+- **任务调度器** (`src/scheduler/`): 定时任务和状态检查
 
 ## 数据流架构
 
@@ -65,39 +66,57 @@
 ```
 good-bye/
 ├── cmd/
-│   └── main.go              # 应用程序入口点
+│   └── main.go                    # 应用程序入口点
 ├── src/
-│   ├── api/                 # API接口层
-│   │   ├── api_handler.go   # API请求处理器
-│   │   └── models.go       # 数据模型
-│   ├── config/              # 配置管理
-│   │   ├── config_manager.go # 配置管理器
-│   │   └── config.go        # 配置结构定义
-│   ├── email/               # 邮件服务
-│   │   ├── email_service.go # 邮件发送服务
-│   │   └── templates/       # 邮件模板
-│   ├── scheduler/           # 任务调度器
-│   │   └── scheduler.go     # 定时任务管理
-│   ├── state/               # 状态管理
-│   │   └── state_manager.go # 状态管理器
-│   └── web/                 # Web服务层
-│       └── router.go        # 路由配置
-├── templates/               # HTML模板
-│   └── checkin.html        # 签到页面模板
-├── static/                  # 静态资源
-│   ├── css/                # CSS样式文件
-│   ├── js/                 # JavaScript文件
-│   └── images/             # 图片资源
-├── config/                  # 配置文件
-│   ├── config.yaml         # 默认配置
-│   └── config.local.yaml   # 本地配置（不提交到git）
-├── data/                    # 数据文件
-│   └── posthumous_papers.md # 遗书内容文件
-├── logs/                    # 日志文件
-├── builds/                  # 构建输出
-├── docs/                    # 文档目录
-├── .github/                 # GitHub配置
-└── Makefile                # 构建脚本
+│   ├── api/                       # API接口层
+│   │   ├── handler.go             # API处理器入口
+│   │   ├── handlers/              # 具体处理器
+│   │   │   ├── health.go          # 健康检查
+│   │   │   ├── status.go          # 状态管理
+│   │   │   ├── settings.go        # 系统设置
+│   │   │   ├── email.go           # 邮件服务
+│   │   │   └── will.go            # 遗书管理
+│   │   ├── middleware/            # 中间件
+│   │   │   └── middleware.go      # 通用中间件
+│   │   └── response/              # 响应处理
+│   │       └── response.go        # 统一响应格式
+│   ├── config/                    # 配置管理
+│   │   └── config_manager.go      # 配置管理器
+│   ├── email/                     # 邮件服务
+│   │   ├── email_service.go       # 邮件发送服务
+│   │   ├── retry_manager.go       # 重试管理器
+│   │   └── constants.go           # 邮件模板常量
+│   ├── scheduler/                 # 任务调度器
+│   │   └── scheduler.go           # 定时任务管理
+│   ├── state/                     # 状态管理
+│   │   └── state_manager.go       # 状态管理器
+│   └── web/                       # Web服务层
+│       └── router.go              # 路由配置
+├── templates/                     # HTML模板
+│   ├── checkin.html              # 签到页面模板
+│   ├── layout.html               # 布局模板
+│   └── partials/                 # 部分模板
+├── static/                        # 静态资源
+│   ├── css/                      # CSS样式文件
+│   ├── js/                       # JavaScript文件
+│   └── images/                   # 图片资源
+├── config/                       # 配置文件
+│   ├── config.yaml               # 默认配置
+│   └── config.local.yaml         # 本地配置（不提交到git）
+├── data/                         # 数据文件
+│   └── posthumous_papers.md      # 遗书内容文件
+├── logs/                         # 日志文件
+├── builds/                       # 构建输出
+│   ├── debug/                    # 调试版本
+│   └── release/                  # 发行版本
+├── docs/                         # 文档目录
+├── .github/                      # GitHub配置
+│   └── workflows/                # CI/CD工作流
+│       └── ci-cd.yml             # 持续集成/持续部署
+├── scripts/                      # 脚本文件
+│   └── setup-pre-commit.sh       # Pre-commit hook设置
+├── Makefile                      # 构建脚本
+└── CLAUDE.md                     # Claude Code指导文档
 ```
 
 ## 核心模块说明
@@ -113,14 +132,14 @@ good-bye/
 - **特性**: 内存存储、线程安全、状态变更记录
 
 ### 3. 邮件服务模块
-- **文件**: `src/email/email_service.go`
-- **功能**: 处理邮件发送逻辑
-- **特性**: SMTP支持、模板渲染、队列管理
+- **文件**: `src/email/email_service.go`, `src/email/retry_manager.go`, `src/email/constants.go`
+- **功能**: 处理邮件发送逻辑、重试机制、模板管理
+- **特性**: SMTP支持、模板渲染、指数退避重试、Markdown转HTML
 
 ### 4. 任务调度模块
 - **文件**: `src/scheduler/scheduler.go`
-- **功能**: 定时检查用户状态和发送邮件
-- **特性**: Cron表达式、错误重试、优雅退出
+- **功能**: 定时检查用户状态、发送提醒邮件和遗书
+- **特性**: 定时任务、提醒机制、优雅退出、生存检测停止
 
 ### 5. Web服务模块
 - **文件**: `src/web/router.go`
@@ -170,3 +189,30 @@ good-bye/
 ### 4. 监控扩展
 - 预留健康检查接口
 - 支持日志收集和监控
+
+## 核心功能特性
+
+### 1. 智能提醒系统
+- 在发送遗书前发送提醒邮件
+- 可配置提醒时间间隔
+- 签到后自动重置提醒状态
+
+### 2. 邮件重试机制
+- 指数退避算法重试
+- 支持从1秒到1周的重试间隔
+- 自动重试失败的邮件发送
+
+### 3. Markdown支持
+- 遗书内容支持Markdown格式
+- 自动转换为精美的HTML邮件
+- 支持复杂的格式化内容
+
+### 4. 生存检测停止
+- 遗书发送后自动停止生存检测
+- 避免重复发送遗书
+- 提高系统的可靠性
+
+### 5. 配置热重载
+- 支持运行时重新加载配置
+- 无需重启服务即可更新配置
+- 提高系统的可维护性

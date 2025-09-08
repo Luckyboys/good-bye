@@ -34,6 +34,10 @@ The pre-commit hook includes the following checks:
 ### Dependency Management
 - **go mod tidy**: Automatic dependency management when go.mod/go.sum changes
 
+### Documentation Checks
+- **Markdown formatting**: Ensures documentation files are properly formatted
+- **File existence**: Verifies required documentation files exist
+
 ## Installation
 
 ### Quick Setup
@@ -140,3 +144,75 @@ Using the pre-commit hook provides several benefits:
 ## Maintenance
 
 The pre-commit hook setup script and documentation should be kept up to date with any changes to the project's tooling or requirements.
+
+## CI/CD Integration
+
+The pre-commit hook is integrated with the project's CI/CD pipeline:
+
+### GitHub Actions
+- The same checks run in the CI/CD pipeline
+- Ensures consistency between local development and CI
+- Fails builds if any check fails
+
+### Makefile Integration
+```bash
+# Run all checks locally
+make check
+
+# Run specific checks
+make fmt    # go fmt
+make lint   # golangci-lint
+make vet    # go vet
+```
+
+## Performance Considerations
+
+### Optimization Tips
+1. **Incremental Checks**: Only checks staged files, not the entire project
+2. **Parallel Execution**: Some checks can run in parallel
+3. **Caching**: Dependency caching for faster execution
+
+### Large Project Considerations
+For large projects, consider:
+- Running checks only on modified files
+- Using caching mechanisms
+- Staggering check execution
+
+## Troubleshooting Advanced Issues
+
+### Memory Issues
+If golangci-lint runs out of memory on large files:
+```bash
+# Increase memory limit
+golangci-lint run --memory-limit=2048 ./...
+```
+
+### Timeout Issues
+If checks timeout on large codebases:
+```bash
+# Increase timeout
+golangci-lint run --timeout=5m ./...
+```
+
+### False Positives
+Some linters may have false positives:
+- Use `//nolint` comments to disable specific linters for specific lines
+- Report false positives to the linter's issue tracker
+- Consider disabling problematic linters if necessary
+
+## Best Practices
+
+### Code Quality
+- **Don't bypass**: Avoid using `--no-verify` unless absolutely necessary
+- **Fix issues immediately**: Address all issues before committing
+- **Review warnings**: Even if warnings don't fail the build, review them
+
+### Team Collaboration
+- **Consistent environment**: Ensure all team members use the same tool versions
+- **Documentation**: Keep documentation up to date with hook changes
+- **Training**: Help new team members understand the hook requirements
+
+### Continuous Improvement
+- **Regular updates**: Keep linters and tools updated
+- **Feedback loop**: Report issues and suggest improvements
+- **Metrics**: Track hook effectiveness and failure rates
