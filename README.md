@@ -2,7 +2,7 @@
 
 一个在用户长时间未活动后，通过邮件发送预设遗书内容的Go项目。
 
-**版本**: v1.2.0 | **构建状态**: [![Go](https://github.com/Luckyboys/good-bye/actions/workflows/go.yml/badge.svg)](https://github.com/Luckyboys/good-bye/actions/workflows/go.yml)
+**版本**: v1.2.0 | **构建状态**: [![CI/CD](https://github.com/Luckyboys/good-bye/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Luckyboys/good-bye/actions/workflows/ci-cd.yml)
 
 ## 项目概述
 
