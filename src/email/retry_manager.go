@@ -36,8 +36,8 @@ type RetryContext struct {
 func NewRetryManager(logger *logrus.Logger) *RetryManager {
 	return &RetryManager{
 		logger:           logger,
-		maxRetryCount:    20,                 // 足够支持到1周的间隔
-		maxRetryDuration: 7 * 24 * time.Hour, // 1周
+		maxRetryCount:    DefaultMaxRetryCount,
+		maxRetryDuration: DefaultMaxRetryDuration,
 		activeRetries:    make(map[string]*RetryContext),
 	}
 }
@@ -91,7 +91,7 @@ func (rm *RetryManager) executeRetry(ctx context.Context, retryKey string, retry
 					Error("Max retry count reached, stopping retry attempts")
 
 				if retryContext.FailureCallback != nil {
-					retryContext.FailureCallback(fmt.Errorf("max retry count (%d) reached", rm.maxRetryCount))
+					retryContext.FailureCallback(fmt.Errorf(ErrorMaxRetryCountReached, rm.maxRetryCount))
 				}
 				rm.removeRetryContext(retryKey)
 				return
@@ -104,7 +104,7 @@ func (rm *RetryManager) executeRetry(ctx context.Context, retryKey string, retry
 					Error("Max retry duration reached, stopping retry attempts")
 
 				if retryContext.FailureCallback != nil {
-					retryContext.FailureCallback(fmt.Errorf("max retry duration (%v) reached", rm.maxRetryDuration))
+					retryContext.FailureCallback(fmt.Errorf(ErrorMaxRetryDurationReached, rm.maxRetryDuration))
 				}
 				rm.removeRetryContext(retryKey)
 				return
@@ -156,7 +156,7 @@ func (rm *RetryManager) executeRetry(ctx context.Context, retryKey string, retry
 			retryContext.NextRetryTime = time.Now().Add(rm.calculateRetryDelay(retryContext.CurrentRetry))
 
 			// 暂停一下，避免过于频繁的重试
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(RetryPauseDelay)
 		}
 	}
 }
@@ -164,15 +164,15 @@ func (rm *RetryManager) executeRetry(ctx context.Context, retryKey string, retry
 // calculateRetryDelay 计算重试延迟（指数退避）
 func (rm *RetryManager) calculateRetryDelay(retryCount int) time.Duration {
 	if retryCount == 0 {
-		return 1 * time.Second
+		return InitialRetryDelay
 	}
 
 	// 指数退避：1s, 2s, 4s, 8s, 16s, 32s, 64s, 128s, 256s, 512s, 1024s, ...
 	delay := time.Duration(math.Pow(2, float64(retryCount))) * time.Second
 
 	// 最大延迟不超过1天
-	if delay > 24*time.Hour {
-		delay = 24 * time.Hour
+	if delay > MaxRetryDelay {
+		delay = MaxRetryDelay
 	}
 
 	return delay

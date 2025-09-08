@@ -2,6 +2,7 @@ package email
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/smtp"
 	"strings"
@@ -59,14 +60,14 @@ func (es *Service) SendTestEmail() *Result {
 	if testEmail == "" {
 		return &Result{
 			Success: false,
-			Message: "测试邮箱地址未配置",
-			Error:   fmt.Errorf("test email not configured"),
+			Message: MessageTestEmailNotConfigured,
+			Error:   errors.New(ErrorTestEmailNotConfigured),
 		}
 	}
 
 	message := Message{
 		To:      testEmail,
-		Subject: "生存确认服务测试邮件",
+		Subject: SubjectTestEmail,
 		Content: es.generateTestEmailContent(),
 		IsHTML:  true,
 	}
@@ -81,14 +82,14 @@ func (es *Service) SendReminderEmail(reminderTime time.Duration, willSendTime ti
 	if testEmail == "" {
 		return &Result{
 			Success: false,
-			Message: "测试邮箱地址未配置",
-			Error:   fmt.Errorf("test email not configured"),
+			Message: MessageTestEmailNotConfigured,
+			Error:   errors.New(ErrorTestEmailNotConfigured),
 		}
 	}
 
 	message := Message{
 		To:      testEmail,
-		Subject: "生存确认服务 - 签到提醒",
+		Subject: SubjectReminderEmail,
 		Content: es.generateReminderEmailContent(reminderTime, willSendTime),
 		IsHTML:  true,
 	}
@@ -104,7 +105,7 @@ func (es *Service) SendWillMessage() *Result {
 		es.logger.WithError(err).Error("Failed to read posthumous papers file")
 		return &Result{
 			Success: false,
-			Message: "读取遗书文件失败",
+			Message: MessageReadPosthumousFailed,
 			Error:   err,
 		}
 	}
@@ -114,8 +115,8 @@ func (es *Service) SendWillMessage() *Result {
 	if len(recipients) == 0 {
 		return &Result{
 			Success: false,
-			Message: "未配置收件人邮箱",
-			Error:   fmt.Errorf("no recipients configured"),
+			Message: MessageWillRecipientsNotConfigured,
+			Error:   errors.New(ErrorNoRecipientsConfigured),
 		}
 	}
 
@@ -129,7 +130,7 @@ func (es *Service) SendWillMessage() *Result {
 	for _, recipient := range recipients {
 		message := Message{
 			To:      recipient,
-			Subject: "遗书通知 - 重要信息",
+			Subject: SubjectWillEmail,
 			Content: emailContent,
 			IsHTML:  true,
 		}
@@ -146,7 +147,7 @@ func (es *Service) SendWillMessage() *Result {
 	if successCount == 0 {
 		return &Result{
 			Success: false,
-			Message: "所有邮件发送失败",
+			Message: MessageAllEmailsFailed,
 			Error:   lastError,
 		}
 	}
@@ -189,7 +190,7 @@ func (es *Service) SendWillToFirstRecipient() *Result {
 
 	message := Message{
 		To:      firstRecipient,
-		Subject: "【测试】遗书通知 - 重要信息",
+		Subject: SubjectTestWillEmail,
 		Content: emailContent,
 		IsHTML:  true,
 	}
@@ -225,7 +226,7 @@ func (es *Service) sendEmail(message Message) *Result {
 
 	// 检查重试管理器是否初始化
 	if es.retryManager == nil {
-		es.logger.Error("Retry manager is not initialized")
+		es.logger.Error(MessageRetryManagerNotInit)
 		return result
 	}
 
@@ -258,7 +259,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err := es.validateEmailConfig(); err != nil {
 		return &Result{
 			Success: false,
-			Message: "邮件配置验证失败",
+			Message: MessageEmailConfigValidationFailed,
 			Error:   err,
 		}
 	}
@@ -284,7 +285,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 		ServerName:         smtpHost,
-		MinVersion:         tls.VersionTLS12,
+		MinVersion:         TLSMinVersion,
 	}
 
 	// 连接SMTP服务器
@@ -293,7 +294,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err != nil {
 		return &Result{
 			Success: false,
-			Message: "连接SMTP服务器失败",
+			Message: MessageConnectSMTPFailed,
 			Error:   err,
 		}
 	}
@@ -303,7 +304,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err := client.StartTLS(tlsConfig); err != nil {
 		return &Result{
 			Success: false,
-			Message: "启用TLS失败",
+			Message: MessageEnableTLSFailed,
 			Error:   err,
 		}
 	}
@@ -312,7 +313,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err := client.Auth(auth); err != nil {
 		return &Result{
 			Success: false,
-			Message: "SMTP认证失败",
+			Message: MessageSMTPAuthFailed,
 			Error:   err,
 		}
 	}
@@ -321,7 +322,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err := client.Mail(fromEmail); err != nil {
 		return &Result{
 			Success: false,
-			Message: "设置发件人失败",
+			Message: MessageSetFromFailed,
 			Error:   err,
 		}
 	}
@@ -330,7 +331,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err := client.Rcpt(message.To); err != nil {
 		return &Result{
 			Success: false,
-			Message: "设置收件人失败",
+			Message: MessageSetToFailed,
 			Error:   err,
 		}
 	}
@@ -340,7 +341,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if err != nil {
 		return &Result{
 			Success: false,
-			Message: "获取邮件写入器失败",
+			Message: MessageGetDataFailed,
 			Error:   err,
 		}
 	}
@@ -350,7 +351,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	if _, err := fmt.Fprint(wc, content); err != nil {
 		return &Result{
 			Success: false,
-			Message: "写入邮件内容失败",
+			Message: MessageWriteContentFailed,
 			Error:   err,
 		}
 	}
@@ -376,19 +377,19 @@ func (es *Service) validateEmailConfig() error {
 	fromEmail := es.config.GetString("email.from_email")
 
 	if smtpHost == "" {
-		return fmt.Errorf("SMTP host is required")
+		return errors.New(ErrorSMTPHostRequired)
 	}
 	if smtpPort <= 0 {
-		return fmt.Errorf("invalid SMTP port")
+		return errors.New(ErrorInvalidSMTPPort)
 	}
 	if username == "" {
-		return fmt.Errorf("username is required")
+		return errors.New(ErrorUsernameRequired)
 	}
 	if password == "" {
-		return fmt.Errorf("password is required")
+		return errors.New(ErrorPasswordRequired)
 	}
 	if fromEmail == "" {
-		return fmt.Errorf("from email is required")
+		return errors.New(ErrorFromEmailRequired)
 	}
 	return nil
 }
@@ -401,8 +402,8 @@ func (es *Service) buildHTMLEmail(subject, content, toEmail string) string {
 	builder.WriteString(fmt.Sprintf("From: %s\r\n", fromEmail))
 	builder.WriteString(fmt.Sprintf("To: %s\r\n", toEmail))
 	builder.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
-	builder.WriteString("MIME-Version: 1.0\r\n")
-	builder.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+	builder.WriteString("MIME-Version: " + MIMEVersion + "\r\n")
+	builder.WriteString("Content-Type: " + ContentTypeHTML + "\r\n")
 	builder.WriteString("\r\n")
 	builder.WriteString(content)
 
@@ -417,7 +418,7 @@ func (es *Service) buildTextEmail(subject, content, toEmail string) string {
 	builder.WriteString(fmt.Sprintf("From: %s\r\n", fromEmail))
 	builder.WriteString(fmt.Sprintf("To: %s\r\n", toEmail))
 	builder.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
-	builder.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
+	builder.WriteString("Content-Type: " + ContentTypeText + "\r\n")
 	builder.WriteString("\r\n")
 	builder.WriteString(content)
 
@@ -426,90 +427,12 @@ func (es *Service) buildTextEmail(subject, content, toEmail string) string {
 
 // generateTestEmailContent 生成测试邮件内容
 func (es *Service) generateTestEmailContent() string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>生存确认服务测试邮件</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #f4f4f4; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #fff; }
-        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>生存确认服务测试邮件</h1>
-        </div>
-        <div class="content">
-            <p>您好！</p>
-            <p>这是一封来自生存确认服务的测试邮件。</p>
-            <p>如果您收到这封邮件，说明邮件服务配置正常。</p>
-            <p>发送时间：%s</p>
-        </div>
-        <div class="footer">
-            <p>生存确认服务 - 自动化邮件通知系统</p>
-        </div>
-    </div>
-</body>
-</html>
-`, time.Now().Format("2006-01-02 15:04:05"))
+	return fmt.Sprintf(TestEmailTemplate, time.Now().Format(TimeFormatRFC3339))
 }
 
 // generateReminderEmailContent 生成提醒邮件内容
 func (es *Service) generateReminderEmailContent(reminderTime time.Duration, willSendTime time.Time) string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>生存确认服务 - 签到提醒</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #fff3cd; padding: 20px; text-align: center; border: 1px solid #ffeaa7; }
-        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; border-top: none; }
-        .warning { background-color: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0; }
-        .footer { background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; border: 1px solid #ddd; border-top: none; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 style="color: #856404;">🔔 生存确认服务 - 签到提醒</h1>
-        </div>
-        <div class="content">
-            <p>您好！</p>
-            <p>这是一封来自生存确认服务的<strong>签到提醒邮件</strong>。</p>
-            
-            <div class="warning">
-                <h3>⚠️ 重要提醒</h3>
-                <p>您已经 <strong>%s</strong> 没有进行签到操作。</p>
-                <p>如果您在 <strong>%s</strong> 之前仍然没有签到，系统将自动发送您的遗书邮件。</p>
-            </div>
-            
-            <h4>请立即采取以下操作：</h4>
-            <ol>
-                <li>访问生存确认服务</li>
-                <li>进行签到操作以确认您的安全状态</li>
-                <li>确保定期签到以避免误触发遗书发送</li>
-            </ol>
-            
-            <p><strong>提醒：</strong>请勿忽视此提醒，一旦遗书邮件发送，将无法撤销。</p>
-        </div>
-        <div class="footer">
-            <p>生存确认服务 - 自动化邮件通知系统</p>
-            <p>发送时间：%s</p>
-        </div>
-    </div>
-</body>
-</html>
-`, reminderTime.String(), willSendTime.Format("2006-01-02 15:04:05"), time.Now().Format("2006-01-02 15:04:05"))
+	return fmt.Sprintf(ReminderEmailTemplate, reminderTime.String(), willSendTime.Format(TimeFormatRFC3339), time.Now().Format(TimeFormatRFC3339))
 }
 
 // processPosthumousContent 处理遗书内容，如果是Markdown则转换为HTML
@@ -526,22 +449,7 @@ func (es *Service) processPosthumousContent(content string) string {
 // isMarkdownContent 检查内容是否为Markdown格式
 func (es *Service) isMarkdownContent(content string) bool {
 	// 简单的Markdown特征检测
-	markdownIndicators := []string{
-		"# ",   // 标题
-		"## ",  // 二级标题
-		"### ", // 三级标题
-		"- ",   // 无序列表
-		"* ",   // 无序列表
-		"1. ",  // 有序列表
-		"[",    // 链接
-		"![",   // 图片
-		"```",  // 代码块
-		"`",    // 行内代码
-		"> ",   // 引用
-		"**",   // 粗体
-		"*",    // 斜体
-		"---",  // 分割线
-	}
+	markdownIndicators := MarkdownIndicators
 
 	for _, indicator := range markdownIndicators {
 		if strings.Contains(content, indicator) {
@@ -563,77 +471,12 @@ func (es *Service) convertMarkdownToHTML(markdown string) string {
 	policy := bluemonday.UGCPolicy()
 	policy.AllowStandardURLs()
 	policy.AllowStandardAttributes()
-	policy.AllowElements("h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr",
-		"ul", "ol", "li", "blockquote", "pre", "code",
-		"strong", "em", "i", "b", "a", "img",
-		"table", "thead", "tbody", "tr", "th", "td")
+	policy.AllowElements(AllowedHTMLTags...)
 
 	safeHTML := policy.SanitizeBytes(unsafeHTML)
 
 	// 添加基本的HTML文档结构
-	return fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>遗书</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 20px;
-            background-color: #fff;
-        }
-        h1, h2, h3, h4, h5, h6 { color: #2c3e50; margin-top: 2em; margin-bottom: 1em; }
-        h1 { border-bottom: 2px solid #3498db; padding-bottom: 0.3em; }
-        h2 { border-bottom: 1px solid #bdc3c7; padding-bottom: 0.2em; }
-        p { margin-bottom: 1em; }
-        pre { 
-            background-color: #f8f9fa; 
-            border: 1px solid #e9ecef; 
-            border-radius: 4px; 
-            padding: 16px; 
-            overflow-x: auto;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        }
-        code { 
-            background-color: #f8f9fa; 
-            border: 1px solid #e9ecef; 
-            border-radius: 3px; 
-            padding: 2px 4px; 
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        }
-        blockquote { 
-            border-left: 4px solid #3498db; 
-            margin: 1em 0; 
-            padding-left: 1em; 
-            color: #7f8c8d; 
-        }
-        table { 
-            border-collapse: collapse; 
-            width: 100%%; 
-            margin: 1em 0; 
-        }
-        th, td { 
-            border: 1px solid #ddd; 
-            padding: 8px; 
-            text-align: left; 
-        }
-        th { 
-            background-color: #f8f9fa; 
-            font-weight: bold; 
-        }
-        img { max-width: 100%%; height: auto; }
-        a { color: #3498db; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    %s
-</body>
-</html>`, string(safeHTML))
+	return fmt.Sprintf(WillEmailTemplateWrapper, WillEmailStyles, string(safeHTML))
 }
 
 // getWillRecipients 获取遗书收件人列表
@@ -745,7 +588,7 @@ func (es *Service) TestEmailConfig(smtpHost string, smtpPort int, username, pass
 
 	message := Message{
 		To:      testEmail,
-		Subject: "邮件配置测试",
+		Subject: SubjectConfigTest,
 		Content: es.generateTestEmailContent(),
 		IsHTML:  true,
 	}
