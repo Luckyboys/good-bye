@@ -13,8 +13,11 @@ RUN go mod download
 # 复制源代码
 COPY . .
 
-# 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o good-bye cmd/main.go
+# 安装 make（如果需要）
+RUN apk add --no-cache make
+
+# 构建应用（使用 Makefile 以确保版本信息正确传递）
+RUN make release
 
 # 使用轻量级的 Alpine 镜像作为运行环境
 FROM alpine:3.22
@@ -31,7 +34,7 @@ RUN apk update && \
 WORKDIR /app/
 
 # 从构建阶段复制二进制文件
-COPY --from=builder /app/good-bye .
+COPY --from=builder /app/builds/release/good-bye .
 
 # 拷贝静态资源文件
 COPY templates /app/templates

@@ -10,7 +10,7 @@ RELEASE_DIR := $(BUILD_DIR)/release
 TESTS_DIR := tests
 
 # 版本信息
-VERSION := v1.1.0
+VERSION := v1.2.0
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 COMMIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
