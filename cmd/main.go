@@ -17,7 +17,7 @@ import (
 
 // 版本信息（在构建时通过 ldflags 设置）
 var (
-	Version    = "v0.0.1"
+	Version    = "v1.2.0"
 	BuildTime  = "unknown"
 	CommitHash = "unknown"
 )
