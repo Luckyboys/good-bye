@@ -13,6 +13,8 @@ TESTS_DIR := tests
 VERSION := v1.2.0
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 COMMIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date '+%Y%m%d')
+DOCKER_TAG := $(VERSION)-$(BUILD_DATE)
 
 # Go 相关设置
 GO := go
@@ -170,6 +172,11 @@ help:
 	@echo "  $(BLUE)check$(NC)         Run format and lint checks"
 	@echo "  $(BLUE)deps$(NC)          Download dependencies"
 	@echo "  $(BLUE)deps-graph$(NC)    Generate dependency graph"
+	@echo "  $(BLUE)docker-build$(NC)  Build Docker image"
+	@echo "  $(BLUE)docker-push$(NC)   Push Docker image to registry"
+	@echo "  $(BLUE)docker-run$(NC)    Run Docker container"
+	@echo "  $(BLUE)docker-clean$(NC)  Clean Docker images and containers"
+	@echo "  $(BLUE)docker-logs$(NC)    Show Docker container logs"
 	@echo "  $(BLUE)help$(NC)          Show this help message"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
@@ -178,6 +185,9 @@ help:
 	@echo "  make clean              # Clean build files"
 	@echo "  make test               # Run tests"
 	@echo "  make run                # Build and run debug version"
+	@echo "  make docker-build        # Build Docker image with version-date tag"
+	@echo "  make docker-run         # Build and run Docker container"
+	@echo "  make docker-clean       # Clean Docker images and containers"
 	@echo ""
 	@echo "$(YELLOW)Claude Code Rules:$(NC)"
 	@echo "  - Test builds: make debug"
@@ -188,6 +198,46 @@ help:
 .PHONY: dirs
 dirs: $(DEBUG_DIR) $(RELEASE_DIR) logs data $(TESTS_DIR)
 
+# Docker 相关的目标
+.PHONY: docker-build
+docker-build:
+	@echo "$(BLUE)[INFO]$(NC) Building Docker image..."
+	docker build -t $(PROJECT_NAME):$(DOCKER_TAG) .
+	docker tag $(PROJECT_NAME):$(DOCKER_TAG) $(PROJECT_NAME):$(VERSION)
+	docker tag $(PROJECT_NAME):$(DOCKER_TAG) $(PROJECT_NAME):latest
+	@echo "$(GREEN)[SUCCESS]$(NC) Docker image built successfully:"
+	@echo "  $(PROJECT_NAME):$(DOCKER_TAG)"
+	@echo "  $(PROJECT_NAME):$(VERSION)"
+	@echo "  $(PROJECT_NAME):latest"
+
+.PHONY: docker-push
+docker-push: docker-build
+	@echo "$(BLUE)[INFO]$(NC) Pushing Docker image to registry..."
+	@echo "$(YELLOW)[WARNING]$(NC) Please configure your registry before pushing"
+	@echo "Example commands:"
+	@echo "  docker tag $(PROJECT_NAME):$(DOCKER_TAG) your-registry/$(PROJECT_NAME):$(DOCKER_TAG)"
+	@echo "  docker push your-registry/$(PROJECT_NAME):$(DOCKER_TAG)"
+
+.PHONY: docker-run
+docker-run: docker-build
+	@echo "$(BLUE)[INFO]$(NC) Running Docker container..."
+	docker run -d -p 8080:8080 --name $(PROJECT_NAME) $(PROJECT_NAME):$(DOCKER_TAG)
+
+.PHONY: docker-clean
+docker-clean:
+	@echo "$(BLUE)[INFO]$(NC) Cleaning Docker images and containers..."
+	@docker stop $(PROJECT_NAME) 2>/dev/null || true
+	@docker rm $(PROJECT_NAME) 2>/dev/null || true
+	@docker rmi $(PROJECT_NAME):$(DOCKER_TAG) 2>/dev/null || true
+	@docker rmi $(PROJECT_NAME):$(VERSION) 2>/dev/null || true
+	@docker rmi $(PROJECT_NAME):latest 2>/dev/null || true
+	@echo "$(GREEN)[SUCCESS]$(NC) Docker cleanup completed"
+
+.PHONY: docker-logs
+docker-logs:
+	@echo "$(BLUE)[INFO]$(NC) Showing Docker container logs..."
+	@docker logs $(PROJECT_NAME)
+
 # 显示项目信息
 .PHONY: info
 info:
@@ -196,6 +246,8 @@ info:
 	@echo "  Version: $(VERSION)"
 	@echo "  Build Time: $(BUILD_TIME)"
 	@echo "  Commit Hash: $(COMMIT_HASH)"
+	@echo "  Build Date: $(BUILD_DATE)"
+	@echo "  Docker Tag: $(DOCKER_TAG)"
 	@echo "  OS: $(GOOS)"
 	@echo "  Architecture: $(GOARCH)"
 	@echo "  Debug Binary: $(DEBUG_BINARY)"

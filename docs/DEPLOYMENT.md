@@ -10,17 +10,28 @@
 
 #### 构建镜像
 ```bash
-# 构建Docker镜像
-docker build -t good-bye:latest .
-
-# 或者使用Makefile
+# 使用Makefile构建（推荐）
 make docker-build
+
+# 这将构建带有版本号+日期标签的Docker镜像
+# 例如：good-bye:v1.2.0-20250908
+
+# 查看构建的镜像
+docker images | grep good-bye
 ```
+
+镜像标签格式：
+- **完整标签**: `v1.2.0-20250908` (版本号+年月日)
+- **版本标签**: `v1.2.0` (仅版本号)
+- **最新标签**: `latest` (最新版本)
 
 #### 运行容器
 ```bash
+# 使用Makefile运行（推荐）
+make docker-run
+
 # 基本运行
-docker run -d -p 8080:8080 good-bye:latest
+docker run -d -p 8080:8080 good-bye:v1.2.0-20250908
 
 # 挂载配置文件和数据目录
 docker run -d \
@@ -28,7 +39,7 @@ docker run -d \
   -v ./config:/root/config \
   -v ./data:/root/data \
   -v ./logs:/root/logs \
-  good-bye:latest
+  good-bye:v1.2.0-20250908
 
 # 使用环境变量配置
 docker run -d \
@@ -36,7 +47,10 @@ docker run -d \
   -e CONFIG_PATH=/root/config/config.yaml \
   -e PORT=8080 \
   -e LOG_LEVEL=info \
-  good-bye:latest
+  good-bye:v1.2.0-20250908
+
+# 使用特定版本的镜像
+docker run -d -p 8080:8080 good-bye:v1.2.0
 ```
 
 #### Docker Compose部署
@@ -47,7 +61,10 @@ version: '3.8'
 
 services:
   good-bye:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: good-bye:v1.2.0-20250908
     ports:
       - "8080:8080"
     volumes:
@@ -64,11 +81,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-```
-
-启动服务：
-```bash
-docker-compose up -d
 ```
 
 ### 2. 手动部署
@@ -252,9 +264,10 @@ sudo journalctl -u good-bye -f
    - 版本标记
 
 3. **自动部署**
-   - Docker镜像推送到多个容器镜像仓库
+   - Docker镜像推送到多个容器镜像仓库，使用版本号+年月日标签
    - 推送到 Docker Hub：`${{ secrets.DOCKER_USERNAME }}/good-bye`
    - 推送到阿里云容器镜像服务：`crpi-kyazw4facu8wslpn.cn-shanghai.personal.cr.aliyuncs.com/luckyboys/good-bye`
+   - 镜像标签格式：`v1.2.0-20250908`（版本号+年月日）
    - 自动化部署到生产环境
 
 ### 工作流文件
@@ -439,6 +452,33 @@ sudo systemctl restart good-bye
 - 检查安全更新
 - 测试邮件发送功能
 - 验证提醒系统工作状态
+
+## 镜像标签策略
+
+项目使用版本号+年月日的镜像标签策略：
+
+### 标签格式
+- **完整标签**: `v1.2.0-20250908` (版本号+年月日)
+- **版本标签**: `v1.2.0` (仅版本号)
+- **最新标签**: `latest` (最新版本)
+
+### 标签优势
+- **版本追踪**: 清晰标识每个构建的版本和日期
+- **回滚支持**: 可以轻松回滚到特定版本
+- **多环境部署**: 不同环境可以使用不同版本的镜像
+- **自动化**: CI/CD流水线自动生成和管理标签
+
+### 使用示例
+```bash
+# 拉取特定版本的镜像
+docker pull username/good-bye:v1.2.0-20250908
+
+# 拉取最新版本
+docker pull username/good-bye:latest
+
+# 拉取版本号（指向最新的该版本构建）
+docker pull username/good-bye:v1.2.0
+```
 
 ## 高级部署选项
 

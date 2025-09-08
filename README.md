@@ -233,21 +233,24 @@ make release
 # 根据你的情况修改遗书内容
 # vim data/posthumous_papers.md
 
-# 使用 Docker Hub 镜像
-docker run -d -p 8080:8080 -v data:/root/data luckyboys/good-bye
+# 使用 Docker Hub 镜像（带版本标签）
+docker run -d -p 8080:8080 -v data:/root/data luckyboys/good-bye:v1.2.0-20250908
+
+# 使用最新版本
+docker run -d -p 8080:8080 -v data:/root/data luckyboys/good-bye:latest
 
 # 或使用阿里云容器镜像
-docker run -d -p 8080:8080 -v data:/root/data crpi-kyazw4facu8wslpn.cn-shanghai.personal.cr.aliyuncs.com/luckyboys/good-bye
+docker run -d -p 8080:8080 -v data:/root/data crpi-kyazw4facu8wslpn.cn-shanghai.personal.cr.aliyuncs.com/luckyboys/good-bye:v1.2.0-20250908
 ```
 
 ## 文档
 
 - [项目架构](docs/ARCHITECTURE.md) - 详细的技术架构说明
-- [开发指南](docs/DEVELOPMENT.md) - 开发团队规划和分工
+- [开发指南](docs/DEVELOPMENT.md) - 完整的开发指南和最佳实践
 - [部署指南](docs/DEPLOYMENT.md) - 完整的部署方案和运维指南
+- [配置说明](docs/CONFIGURATION.md) - 详细的配置选项说明和示例
 - [构建规则](BUILD_RULES.md) - 构建系统和规则说明
 - [Pre-commit Hook 设置](docs/PRE_COMMIT_HOOK.md) - 代码质量检查和现代化工具配置
-- [配置说明](docs/CONFIGURATION.md) - 详细的配置选项说明和示例
 
 ## 安全注意事项
 
