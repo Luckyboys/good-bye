@@ -74,6 +74,28 @@ func (es *Service) SendTestEmail() *Result {
 	return es.sendEmail(message)
 }
 
+// SendReminderEmail 发送提醒签到邮件
+func (es *Service) SendReminderEmail(reminderTime time.Duration, willSendTime time.Time) *Result {
+	// 获取测试邮箱地址
+	testEmail := es.config.GetString("email.test_email")
+	if testEmail == "" {
+		return &Result{
+			Success: false,
+			Message: "测试邮箱地址未配置",
+			Error:   fmt.Errorf("test email not configured"),
+		}
+	}
+
+	message := Message{
+		To:      testEmail,
+		Subject: "生存确认服务 - 签到提醒",
+		Content: es.generateReminderEmailContent(reminderTime, willSendTime),
+		IsHTML:  true,
+	}
+
+	return es.sendEmail(message)
+}
+
 // SendWillMessage 发送遗书邮件（从文件读取内容）
 func (es *Service) SendWillMessage() *Result {
 	// 从文件读取遗书内容
@@ -436,6 +458,58 @@ func (es *Service) generateTestEmailContent() string {
 </body>
 </html>
 `, time.Now().Format("2006-01-02 15:04:05"))
+}
+
+// generateReminderEmailContent 生成提醒邮件内容
+func (es *Service) generateReminderEmailContent(reminderTime time.Duration, willSendTime time.Time) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>生存确认服务 - 签到提醒</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #fff3cd; padding: 20px; text-align: center; border: 1px solid #ffeaa7; }
+        .content { padding: 20px; background-color: #fff; border: 1px solid #ddd; border-top: none; }
+        .warning { background-color: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0; }
+        .footer { background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; border: 1px solid #ddd; border-top: none; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="color: #856404;">🔔 生存确认服务 - 签到提醒</h1>
+        </div>
+        <div class="content">
+            <p>您好！</p>
+            <p>这是一封来自生存确认服务的<strong>签到提醒邮件</strong>。</p>
+            
+            <div class="warning">
+                <h3>⚠️ 重要提醒</h3>
+                <p>您已经 <strong>%s</strong> 没有进行签到操作。</p>
+                <p>如果您在 <strong>%s</strong> 之前仍然没有签到，系统将自动发送您的遗书邮件。</p>
+            </div>
+            
+            <h4>请立即采取以下操作：</h4>
+            <ol>
+                <li>访问生存确认服务</li>
+                <li>进行签到操作以确认您的安全状态</li>
+                <li>确保定期签到以避免误触发遗书发送</li>
+            </ol>
+            
+            <p><strong>提醒：</strong>请勿忽视此提醒，一旦遗书邮件发送，将无法撤销。</p>
+        </div>
+        <div class="footer">
+            <p>生存确认服务 - 自动化邮件通知系统</p>
+            <p>发送时间：%s</p>
+        </div>
+    </div>
+</body>
+</html>
+`, reminderTime.String(), willSendTime.Format("2006-01-02 15:04:05"), time.Now().Format("2006-01-02 15:04:05"))
 }
 
 // processPosthumousContent 处理遗书内容，如果是Markdown则转换为HTML

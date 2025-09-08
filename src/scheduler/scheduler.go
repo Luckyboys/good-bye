@@ -76,14 +76,35 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 					continue
 				}
 
+				// 检查是否应该发送提醒
+				shouldSendReminder, willSendTime, err := ts.stateMgr.ShouldSendReminder()
+				if err != nil {
+					ts.logger.WithError(err).Error("Failed to check if should send reminder")
+					continue
+				}
+
+				if shouldSendReminder {
+					ts.logger.Info("Sending reminder email due to inactivity")
+					systemConfig := ts.configMgr.GetSystemConfig()
+					result := ts.emailSvc.SendReminderEmail(systemConfig.ReminderTime, willSendTime)
+					if result.Success {
+						if err := ts.stateMgr.MarkReminderAsSent(); err != nil {
+							ts.logger.WithError(err).Error("Failed to mark reminder as sent")
+						}
+						ts.logger.Info("Reminder email sent successfully")
+					} else {
+						ts.logger.WithError(result.Error).Error("Failed to send reminder email")
+					}
+				}
+
 				// 检查是否应该发送遗书
-				shouldSend, err := ts.stateMgr.ShouldSendWillMessage()
+				shouldSendWill, err := ts.stateMgr.ShouldSendWillMessage()
 				if err != nil {
 					ts.logger.WithError(err).Error("Failed to check if should send will message")
 					continue
 				}
 
-				if shouldSend {
+				if shouldSendWill {
 					ts.logger.Info("Sending will messages due to inactivity")
 					hasWill, err := ts.stateMgr.GetUnsentWillMessages()
 					if err != nil {

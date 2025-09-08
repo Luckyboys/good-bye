@@ -49,6 +49,7 @@ func setDefaults(v *viper.Viper) {
 	// 系统配置
 	v.SetDefault("system.check_interval", time.Hour*24)
 	v.SetDefault("system.max_inactive_time", time.Hour*24*7)
+	v.SetDefault("system.reminder_time", time.Hour*24*6) // 默认在发送遗书前6小时提醒
 	v.SetDefault("system.timezone", "Asia/Shanghai")
 
 	// 日志配置
@@ -113,6 +114,7 @@ server:
 system:
   check_interval: "24h"     # 检查间隔（时间间隔格式）
   max_inactive_time: "168h"      # 最大不活跃时间（时间间隔格式）
+  reminder_time: "144h"    # 发送提醒的时间（在发送遗书之前的时间间隔，大于0时启用，默认6天）
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置
@@ -326,6 +328,7 @@ type ServerConfig struct {
 type SystemConfig struct {
 	CheckInterval   time.Duration `mapstructure:"check_interval"`
 	MaxInactiveTime time.Duration `mapstructure:"max_inactive_time"`
+	ReminderTime    time.Duration `mapstructure:"reminder_time"`
 	Timezone        string        `mapstructure:"timezone"`
 }
 

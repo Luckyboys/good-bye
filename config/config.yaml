@@ -8,7 +8,8 @@ server:
 # 系统配置
 system:
   check_interval: "24h"     # 检查间隔（时间间隔格式）
-  max_inactive_time: "168h"      # 最大不活跃时间（时间间隔格式）
+  max_inactive_time: "7d"      # 最大不活跃时间（时间间隔格式）
+  reminder_time: "180m"      # 发送提醒的时间（在发送遗书之前的时间间隔，大于0时启用）
   timezone: "Asia/Shanghai"  # 时区
 
 # 日志配置

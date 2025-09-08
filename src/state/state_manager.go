@@ -12,24 +12,28 @@ import (
 
 // Manager 状态管理器
 type Manager struct {
-	configMgr       *config.Manager
-	logger          *logrus.Logger
-	posthumousFile  string
-	lastSeen        time.Time
-	mu              sync.RWMutex
-	checkingStopped bool
-	willSent        bool
+	configMgr        *config.Manager
+	logger           *logrus.Logger
+	posthumousFile   string
+	lastSeen         time.Time
+	mu               sync.RWMutex
+	checkingStopped  bool
+	willSent         bool
+	reminderSent     bool
+	lastReminderTime time.Time
 }
 
 // NewStateManager 创建新的状态管理器
 func NewStateManager(configMgr *config.Manager, logger *logrus.Logger, posthumousFile string) *Manager {
 	return &Manager{
-		configMgr:       configMgr,
-		logger:          logger,
-		posthumousFile:  posthumousFile,
-		lastSeen:        time.Now(), // 初始化为当前时间
-		checkingStopped: false,
-		willSent:        false,
+		configMgr:        configMgr,
+		logger:           logger,
+		posthumousFile:   posthumousFile,
+		lastSeen:         time.Now(), // 初始化为当前时间
+		checkingStopped:  false,
+		willSent:         false,
+		reminderSent:     false,
+		lastReminderTime: time.Time{}, // 零值表示未发送过提醒
 	}
 }
 
@@ -38,6 +42,8 @@ func (sm *Manager) UpdateStatus() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.lastSeen = time.Now()
+	// 重置提醒状态
+	sm.ResetReminderSent()
 	return nil
 }
 
@@ -151,6 +157,96 @@ func (sm *Manager) ShouldSendWillMessage() (bool, error) {
 	}
 
 	return isInactive, nil
+}
+
+// ShouldSendReminder 检查是否应该发送提醒邮件
+func (sm *Manager) ShouldSendReminder() (bool, time.Time, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	// 如果检查已停止，不再发送提醒
+	if sm.checkingStopped {
+		sm.logger.Info("Status checking has been stopped, will not send reminder")
+		return false, time.Time{}, nil
+	}
+
+	// 如果遗书已发送，不再发送提醒
+	if sm.willSent {
+		sm.logger.Info("Will message has already been sent, will not send reminder")
+		return false, time.Time{}, nil
+	}
+
+	// 获取系统配置
+	systemConfig := sm.configMgr.GetSystemConfig()
+
+	// 如果提醒时间未配置（小于等于0），不发送提醒
+	if systemConfig.ReminderTime <= 0 {
+		return false, time.Time{}, nil
+	}
+
+	// 如果已经发送过提醒，不再重复发送
+	if sm.reminderSent {
+		sm.logger.Info("Reminder has already been sent, will not send again")
+		return false, time.Time{}, nil
+	}
+
+	// 检查遗书文件是否存在
+	if _, err := os.Stat(sm.posthumousFile); os.IsNotExist(err) {
+		sm.logger.Warn("Posthumous papers file not found, will not send reminder")
+		return false, time.Time{}, nil
+	}
+
+	// 计算应该发送遗书的时间
+	now := time.Now()
+	willSendTime := sm.lastSeen.Add(systemConfig.MaxInactiveTime)
+
+	// 计算应该发送提醒的时间（发送遗书前reminder_time）
+	reminderSendTime := willSendTime.Add(-systemConfig.ReminderTime)
+
+	// 如果当前时间已经过了提醒发送时间，但还没有到发送遗书的时间，则需要发送提醒
+	if now.After(reminderSendTime) && now.Before(willSendTime) {
+		return true, willSendTime, nil
+	}
+
+	return false, willSendTime, nil
+}
+
+// MarkReminderAsSent 标记提醒为已发送
+func (sm *Manager) MarkReminderAsSent() error {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	sm.logger.Info("Reminder has been sent")
+	sm.reminderSent = true
+	sm.lastReminderTime = time.Now()
+
+	return nil
+}
+
+// ResetReminderSent 重置提醒发送状态（在签到后调用）
+func (sm *Manager) ResetReminderSent() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if sm.reminderSent {
+		sm.logger.Info("Reminder status reset due to user check-in")
+		sm.reminderSent = false
+		sm.lastReminderTime = time.Time{}
+	}
+}
+
+// IsReminderSent 检查提醒是否已发送
+func (sm *Manager) IsReminderSent() bool {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.reminderSent
+}
+
+// GetLastReminderTime 获取最后提醒时间
+func (sm *Manager) GetLastReminderTime() (time.Time, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.lastReminderTime, nil
 }
 
 // MarkWillAsSent 标记遗书为已发送
