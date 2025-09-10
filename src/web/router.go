@@ -62,6 +62,14 @@ func (r *Router) setupRoutes() {
 	r.apiHandler.SetupMiddleware(r.engine)
 	r.apiHandler.SetupRoutes(r.engine)
 
+	// 健康检查端点（Docker健康检查使用）
+	r.engine.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"message": "Service is running",
+		})
+	})
+
 	// 静态文件服务
 	r.engine.Static("/static", "./static")
 	r.engine.LoadHTMLGlob("templates/*")
