@@ -43,7 +43,11 @@ func (sm *Manager) UpdateStatus() error {
 	defer sm.mu.Unlock()
 	sm.lastSeen = time.Now()
 	// 重置提醒状态
-	sm.ResetReminderSent()
+	if sm.reminderSent {
+		sm.logger.Info("Reminder status reset due to user check-in")
+		sm.reminderSent = false
+		sm.lastReminderTime = time.Time{}
+	}
 	return nil
 }
 
