@@ -177,13 +177,13 @@ const (
             
             <div class="warning">
                 <h3>⚠️ 重要提醒</h3>
-                <p>您已经 <strong>%s</strong> 没有进行签到操作。</p>
+                <p>您已经超过 <strong>%s</strong> 没有进行签到操作。</p>
                 <p>如果您在 <strong>%s</strong> 之前仍然没有签到，系统将自动发送您的遗书邮件。</p>
             </div>
             
             <h4>请立即采取以下操作：</h4>
             <ol>
-                <li>访问生存确认服务</li>
+                <li><a href="https://good-bye.eachol.ren:12443">访问生存确认服务</a></li>
                 <li>进行签到操作以确认您的安全状态</li>
                 <li>确保定期签到以避免误触发遗书发送</li>
             </ol>

@@ -49,7 +49,7 @@ func setDefaults(v *viper.Viper) {
 	// 系统配置
 	v.SetDefault("system.check_interval", time.Hour*24)
 	v.SetDefault("system.max_inactive_time", time.Hour*24*7)
-	v.SetDefault("system.reminder_time", time.Hour*24*6) // 默认在发送遗书前6小时提醒
+	v.SetDefault("system.reminder_time", time.Hour*6) // 默认在发送遗书前6小时提醒
 	v.SetDefault("system.timezone", "Asia/Shanghai")
 
 	// 日志配置
@@ -166,6 +166,7 @@ func (cm *Manager) GetSystemConfig() SystemConfig {
 	return SystemConfig{
 		CheckInterval:   cm.Viper.GetDuration("system.check_interval"),
 		MaxInactiveTime: cm.Viper.GetDuration("system.max_inactive_time"),
+		ReminderTime:    cm.Viper.GetDuration("system.reminder_time"),
 		Timezone:        cm.Viper.GetString("system.timezone"),
 	}
 }
@@ -241,12 +242,6 @@ func (cm *Manager) GetBool(key string) bool {
 	return cm.Viper.GetBool(key)
 }
 
-// SyncToDatabase 同步配置到数据库
-func (cm *Manager) SyncToDatabase() error {
-	// 不再需要数据库同步
-	return nil
-}
-
 // ValidatePosthumousPapersFile 验证遗书文件是否存在
 func (cm *Manager) ValidatePosthumousPapersFile() error {
 	posthumousPapersFile := cm.Viper.GetString("deployment.posthumous_papers_file")
@@ -277,7 +272,7 @@ func (cm *Manager) ValidateConfig() error {
 
 	// 验证检查间隔
 	checkInterval := cm.Viper.GetDuration("system.check_interval")
-	if checkInterval < time.Minute {
+	if checkInterval <= 0 {
 		return fmt.Errorf("invalid check interval: %v", checkInterval)
 	}
 

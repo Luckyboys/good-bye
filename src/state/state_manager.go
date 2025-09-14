@@ -207,6 +207,15 @@ func (sm *Manager) ShouldSendReminder() (bool, time.Time, error) {
 	// 计算应该发送提醒的时间（发送遗书前reminder_time）
 	reminderSendTime := willSendTime.Add(-systemConfig.ReminderTime)
 
+	sm.logger.
+		WithField("now", now).
+		WithField("lastSeen", sm.lastSeen).
+		WithField("maxInactiveTime", systemConfig.MaxInactiveTime).
+		WithField("reminderTime", systemConfig.ReminderTime).
+		WithField("reminderSendTime", reminderSendTime).
+		WithField("willSendTime", willSendTime).
+		Debug("checked reminder send time")
+
 	// 如果当前时间已经过了提醒发送时间，但还没有到发送遗书的时间，则需要发送提醒
 	if now.After(reminderSendTime) && now.Before(willSendTime) {
 		return true, willSendTime, nil

@@ -64,12 +64,18 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 	systemConfig := ts.configMgr.GetSystemConfig()
 
 	go func() {
+		ts.logger.WithField("checkInterval", systemConfig.CheckInterval).Info("Starting status check task")
+		defer ts.logger.Info("Status check task exiting")
+
 		ticker := time.NewTicker(systemConfig.CheckInterval)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
+
+				ts.logger.Debug("Checking status")
+
 				// 检查状态检查是否已停止
 				if ts.stateMgr.IsCheckingStopped() {
 					ts.logger.Debug("Status checking is stopped, skipping check")
@@ -82,6 +88,10 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 					ts.logger.WithError(err).Error("Failed to check if should send reminder")
 					continue
 				}
+				ts.logger.
+					WithField("shouldSendReminder", shouldSendReminder).
+					WithField("willSendTime", willSendTime).
+					Debug("checked should be send reminder")
 
 				if shouldSendReminder {
 					ts.logger.Info("Sending reminder email due to inactivity")
@@ -103,6 +113,9 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 					ts.logger.WithError(err).Error("Failed to check if should send will message")
 					continue
 				}
+				ts.logger.
+					WithField("shouldSendWill", shouldSendWill).
+					Debug("checked should be send will")
 
 				if shouldSendWill {
 					ts.logger.Info("Sending will messages due to inactivity")
@@ -111,6 +124,7 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 						ts.logger.WithError(err).Error("Failed to check unsent will messages")
 						continue
 					}
+					ts.logger.WithField("hasWill", hasWill).Debug("checked has will")
 
 					if hasWill {
 						result := ts.emailSvc.SendWillMessage()
@@ -134,13 +148,20 @@ func (ts *TaskScheduler) startStatusCheckTask() {
 
 // startEmailRetryTask 启动邮件重试任务
 func (ts *TaskScheduler) startEmailRetryTask() {
+	systemConfig := ts.configMgr.GetSystemConfig()
+
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute) // 每5分钟记录一次重试状态
+		ts.logger.WithField("checkInterval", systemConfig.CheckInterval).Info("Starting email retry task")
+		defer ts.logger.Info("Email retry task exiting")
+
+		ticker := time.NewTicker(systemConfig.CheckInterval) // 每5分钟记录一次重试状态
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
+				ts.logger.Debug("Checking email retry status")
+
 				// 记录重试状态
 				if retryStatus := ts.emailSvc.GetRetryStatus(); retryStatus != nil {
 					ts.logger.WithField("active_retries", retryStatus["active_retries"]).
@@ -157,12 +178,17 @@ func (ts *TaskScheduler) startEmailRetryTask() {
 // startConfigReloadTask 启动配置重载任务
 func (ts *TaskScheduler) startConfigReloadTask() {
 	go func() {
+		ts.logger.Info("Starting config reload task")
+		defer ts.logger.Info("Config reload task exiting")
+
 		ticker := time.NewTicker(5 * time.Minute) // 每5分钟检查一次配置变化
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
+				ts.logger.Debug("Checking config reload status")
+
 				if err := ts.configMgr.ReloadConfig(); err != nil {
 					ts.logger.WithError(err).Error("Failed to reload config")
 				}
