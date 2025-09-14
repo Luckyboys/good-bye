@@ -30,6 +30,9 @@ RUN apk update && \
     rm -rf /var/cache/apk/* && \
     sh -c 'bash'
 
+# 替换 Alpine 软件源为阿里云镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # 设置工作目录
 WORKDIR /app/
 
