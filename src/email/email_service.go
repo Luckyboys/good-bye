@@ -289,8 +289,7 @@ func (es *Service) doSendEmail(message Message) *Result {
 	}
 
 	// 连接SMTP服务器
-	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
-	client, err := smtp.Dial(addr)
+	client, err := dialSMTP(smtpHost, smtpPort, DefaultTimeout)
 	if err != nil {
 		return &Result{
 			Success: false,
