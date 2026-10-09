@@ -31,7 +31,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 
 	health := h.stateMgr.GetHealthStatus()
 
-	response.Success(c, "Service is healthy", health)
+	response.Success(c, "Service is healthy", map[string]any{"status": health["status"]})
 }
 
 // Ready 就绪检查

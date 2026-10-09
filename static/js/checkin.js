@@ -1,7 +1,5 @@
 // 签到页面JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-    loadStatusInfo();
-    
     // 设置当前年份
     document.getElementById('current-year').textContent = new Date().getFullYear();
 });
@@ -29,6 +27,7 @@ async function loadStatusInfo() {
         hideLoading(statusElement, statusHtml);
         
     } catch (error) {
+        document.getElementById('status-info').textContent = error.message;
         console.error('加载状态信息失败:', error);
         showNotification('加载状态信息失败', 'error');
     }

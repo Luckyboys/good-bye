@@ -15,6 +15,13 @@
         
         <main>
             <div class="checkin-container">
+                <form class="card" onsubmit="event.preventDefault(); loadStatusInfo();">
+                    <h2>所有者验证</h2>
+                    <label for="owner-token">访问令牌</label>
+                    <input id="owner-token" type="password" autocomplete="off" required>
+                    <p>输入服务配置中的所有者令牌。刷新页面后需重新输入。</p>
+                    <button type="submit" class="btn btn-primary">验证并加载状态</button>
+                </form>
                 <div class="card">
                     <h2>签到</h2>
                     <p>点击下方按钮刷新您的存活状态</p>
@@ -25,7 +32,7 @@
                 <div class="card">
                     <h2>签到状态</h2>
                     <div id="status-info">
-                        <p>加载中...</p>
+                        <p>请输入所有者令牌以加载状态。</p>
                     </div>
                 </div>
                 

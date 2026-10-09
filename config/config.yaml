@@ -1,6 +1,7 @@
 # 服务器配置
 server:
   port: 8080
+  owner_token: ""  # 设置随机所有者令牌，或使用 SERVER_OWNER_TOKEN；为空时拒绝敏感 API 请求
   host: "0.0.0.0"
   read_timeout: 30
   write_timeout: 30

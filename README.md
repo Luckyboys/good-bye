@@ -180,6 +180,16 @@ deployment:
 
 ## API接口
 
+### 所有者验证
+
+除 `/health` 和 `/api/v1/health`、`/api/v1/ready`、`/api/v1/live` 健康检查外，所有 API 都要求所有者令牌。
+
+- 使用 `openssl rand -hex 32` 生成随机令牌，配置为 `server.owner_token` 或环境变量 `SERVER_OWNER_TOKEN`。不要提交真实令牌。
+- 未配置令牌时，敏感 API 返回 `401`，不会执行操作。令牌在启动时读取，修改或撤销后需要重启服务。
+- Web 页面中输入令牌后点击“验证并加载状态”；令牌仅保留在当前页面，不写入浏览器存储。
+- API 客户端必须发送 `Authorization: Bearer <令牌>` 请求头；不接受 URL 参数、Cookie 或代理身份头作为认证。
+- 远程访问必须通过 HTTPS（可使用下方部署文档中的反向代理），并限制明文后端端口只能由可信代理访问。Docker 部署可在挂载的配置文件中设置令牌，或通过 `-e SERVER_OWNER_TOKEN` 传入已导出的环境变量。
+
 ### 健康检查
 - `GET /health` - 服务健康状态
 

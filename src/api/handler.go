@@ -69,6 +69,9 @@ func (h *Handler) SetupRoutes(router *gin.Engine) {
 	apiGroup.GET("/ready", h.healthHandler.Ready)
 	apiGroup.GET("/live", h.healthHandler.Live)
 
+	// 所有敏感操作都需要所有者身份验证，包括直接访问监听端口的请求。
+	apiGroup.Use(middleware.OwnerAuth(h.apiContext.ConfigMgr.GetString("server.owner_token")))
+
 	// 状态管理路由
 	apiGroup.POST("/checkin", h.statusHandler.CheckIn)
 	apiGroup.GET("/status", h.statusHandler.GetStatus)

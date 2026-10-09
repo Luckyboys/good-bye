@@ -3,6 +3,10 @@ const API_BASE = '/api/v1';
 
 // 通用API请求函数
 async function apiRequest(endpoint, options = {}) {
+    const token = document.getElementById('owner-token').value;
+    if (!token.trim()) {
+        throw new Error('请先输入所有者令牌');
+    }
     const url = `${API_BASE}${endpoint}`;
     const defaultOptions = {
         headers: {
@@ -10,7 +14,15 @@ async function apiRequest(endpoint, options = {}) {
         },
     };
     
-    const finalOptions = { ...defaultOptions, ...options };
+    const finalOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers,
+            'Authorization': `Bearer ${token}`,
+        },
+    };
     
     try {
         const response = await fetch(url, finalOptions);
