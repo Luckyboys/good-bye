@@ -75,7 +75,7 @@ func TestSMTPGreetingLimits(t *testing.T) {
 			host, port := smtpPeer(t, func(conn net.Conn) {
 				_, _ = io.WriteString(conn, tc.greeting)
 			})
-			client, err := dialSMTP(host, port, time.Second)
+			client, err := dialSMTPWithDialer(host, port, time.Second, net.Dialer{})
 			if client != nil {
 				defer client.Close()
 			}
@@ -100,7 +100,7 @@ func TestSMTPDeadline(t *testing.T) {
 				_, _ = io.Copy(io.Discard, conn)
 			})
 			start := time.Now()
-			client, err := dialSMTP(host, port, 100*time.Millisecond)
+			client, err := dialSMTPWithDialer(host, port, 100*time.Millisecond, net.Dialer{})
 			if client != nil {
 				defer client.Close()
 				err = client.Hello("localhost")
@@ -176,7 +176,7 @@ func TestSMTPSTARTTLS(t *testing.T) {
 				_, _ = io.WriteString(conn, "250 delivered\r\n")
 				exchange("QUIT", "221 bye\r\n")
 			})
-			client, err := dialSMTP(host, port, 3*time.Second)
+			client, err := dialSMTPWithDialer(host, port, 3*time.Second, net.Dialer{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -218,18 +218,19 @@ func TestSMTPSTARTTLS(t *testing.T) {
 	}
 }
 
-func TestEmailConfigRejectsOversizedGreeting(t *testing.T) {
+func TestEmailConfigRejectsLoopback(t *testing.T) {
 	host, port := smtpPeer(t, func(conn net.Conn) {
-		_, _ = io.WriteString(conn, "220 "+strings.Repeat("x", maxSMTPServerBytes)+"\r\n")
+		t.Error("SMTP test connected to loopback")
 	})
 	settings := viper.New()
 	settings.Set("email.smtp_host", "original.example")
+	settings.Set("deployment.smtp_allowed_destinations", []string{net.JoinHostPort(host, strconv.Itoa(port))})
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
-	service := &Service{config: &config.Manager{Viper: settings}, logger: logger}
+	service := NewEmailService(&config.Manager{Viper: settings}, nil, logger)
 	result := service.TestEmailConfig(host, port, "test", "test", "sender@example.com", "recipient@example.com")
-	if result.Success || !errors.Is(result.Error, errSMTPServerLimit) {
-		t.Fatalf("expected bounded greeting failure, got %+v", result)
+	if result.Success || (result.Error == nil || !strings.Contains(result.Error.Error(), "address is not public")) {
+		t.Fatalf("expected destination rejection, got %+v", result)
 	}
 	if got := settings.GetString("email.smtp_host"); got != "original.example" {
 		t.Fatalf("configuration was not restored: %q", got)

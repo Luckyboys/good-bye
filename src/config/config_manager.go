@@ -139,6 +139,7 @@ email:
 
 # 部署配置
 deployment:
+  smtp_allowed_destinations: [] # 必须由部署管理员设置，例如 ["smtp.gmail.com:587"]
   posthumous_papers_file: "./data/posthumous_papers.md"  # 遗书文件路径
 `
 

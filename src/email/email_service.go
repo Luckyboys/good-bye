@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/smtp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,19 +19,27 @@ import (
 
 // Service 邮件服务
 type Service struct {
-	config       *config.Manager
-	state        *state.Manager
-	logger       *logrus.Logger
-	retryManager *RetryManager
-	sendFunc     func(Message) *Result
+	config           *config.Manager
+	state            *state.Manager
+	logger           *logrus.Logger
+	retryManager     *RetryManager
+	sendFunc         func(Message) *Result
+	smtpDestinations map[string]bool
 }
 
 // NewEmailService 创建新的邮件服务
 func NewEmailService(cfg *config.Manager, stateMgr *state.Manager, logger *logrus.Logger) *Service {
 	service := &Service{
-		config: cfg,
-		state:  stateMgr,
-		logger: logger,
+		config:           cfg,
+		state:            stateMgr,
+		logger:           logger,
+		smtpDestinations: make(map[string]bool),
+	}
+
+	// Deployment policy is separate from API-writable email settings and is
+	// captured at startup. An absent or empty allowlist denies all destinations.
+	for _, destination := range cfg.Viper.GetStringSlice("deployment.smtp_allowed_destinations") {
+		service.smtpDestinations[strings.ToLower(destination)] = true
 	}
 
 	service.retryManager = NewRetryManager(logger)
@@ -288,6 +298,10 @@ func (es *Service) doSendEmail(message Message) *Result {
 		MinVersion:         TLSMinVersion,
 	}
 
+	if err := es.validateSMTPDestination(smtpHost, smtpPort); err != nil {
+		return &Result{Message: MessageConnectSMTPFailed, Error: err}
+	}
+
 	// 连接SMTP服务器
 	client, err := dialSMTP(smtpHost, smtpPort, DefaultTimeout)
 	if err != nil {
@@ -537,8 +551,19 @@ func (es *Service) StopAllRetries() {
 	}
 }
 
+func (es *Service) validateSMTPDestination(host string, port int) error {
+	if port < 1 || port > 65535 || !es.smtpDestinations[net.JoinHostPort(strings.ToLower(host), strconv.Itoa(port))] {
+		return errors.New("SMTP destination is not allowed by deployment policy")
+	}
+	return nil
+}
+
 // UpdateEmailConfig 更新邮件配置
 func (es *Service) UpdateEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) error {
+	if err := es.validateSMTPDestination(smtpHost, smtpPort); err != nil {
+		return err
+	}
+
 	// 更新配置
 	es.config.Viper.Set("email.smtp_host", smtpHost)
 	es.config.Viper.Set("email.smtp_port", smtpPort)
@@ -559,31 +584,20 @@ func (es *Service) UpdateEmailConfig(smtpHost string, smtpPort int, username, pa
 
 // TestEmailConfig 测试邮件配置
 func (es *Service) TestEmailConfig(smtpHost string, smtpPort int, username, password, fromEmail, testEmail string) *Result {
-	// 临时使用新的配置发送测试邮件
-	oldSMTPHost := es.config.GetString("email.smtp_host")
-	oldSMTPPort := es.config.GetInt("email.smtp_port")
-	oldUsername := es.config.GetString("email.username")
-	oldPassword := es.config.GetString("email.password")
-	oldFromEmail := es.config.GetString("email.from_email")
-	oldTestEmail := es.config.GetString("email.test_email")
-
-	// 临时设置新配置
-	es.config.Viper.Set("email.smtp_host", smtpHost)
-	es.config.Viper.Set("email.smtp_port", smtpPort)
-	es.config.Viper.Set("email.username", username)
-	es.config.Viper.Set("email.password", password)
-	es.config.Viper.Set("email.from_email", fromEmail)
-	es.config.Viper.Set("email.test_email", testEmail)
-
-	// 恢复旧配置
-	defer func() {
-		es.config.Viper.Set("email.smtp_host", oldSMTPHost)
-		es.config.Viper.Set("email.smtp_port", oldSMTPPort)
-		es.config.Viper.Set("email.username", oldUsername)
-		es.config.Viper.Set("email.password", oldPassword)
-		es.config.Viper.Set("email.from_email", oldFromEmail)
-		es.config.Viper.Set("email.test_email", oldTestEmail)
-	}()
+	// Keep caller-supplied settings local to this test; never mutate the shared
+	// configuration or queue retries that would later use different settings.
+	testConfig := config.NewConfigManager(es.logger)
+	testConfig.Viper.Set("email.smtp_host", smtpHost)
+	testConfig.Viper.Set("email.smtp_port", smtpPort)
+	testConfig.Viper.Set("email.username", username)
+	testConfig.Viper.Set("email.password", password)
+	testConfig.Viper.Set("email.from_email", fromEmail)
+	testConfig.Viper.Set("email.test_email", testEmail)
+	testService := &Service{
+		config:           testConfig,
+		logger:           es.logger,
+		smtpDestinations: es.smtpDestinations,
+	}
 
 	message := Message{
 		To:      testEmail,
@@ -592,5 +606,5 @@ func (es *Service) TestEmailConfig(smtpHost string, smtpPort int, username, pass
 		IsHTML:  true,
 	}
 
-	return es.sendEmail(message)
+	return testService.doSendEmail(message)
 }

@@ -42,7 +42,7 @@ func (h *EmailHandler) SendTestEmail(c *gin.Context) {
 		response.Success(c, result.Message, nil)
 	} else {
 		ctx.Logger.WithError(result.Error).Error("Failed to send test email")
-		response.InternalServerError(c, result.Message, result.Error)
+		response.InternalServerError(c, "邮件测试失败", nil)
 	}
 }
 
@@ -113,7 +113,7 @@ func (h *EmailHandler) UpdateEmailConfig(c *gin.Context) {
 
 // TestEmailConfig 测试邮件配置
 func (h *EmailHandler) TestEmailConfig(c *gin.Context) {
-	_, exists := middleware.GetAPIContext(c)
+	ctx, exists := middleware.GetAPIContext(c)
 	if !exists {
 		response.InternalServerError(c, "API context not found", nil)
 		return
@@ -143,7 +143,8 @@ func (h *EmailHandler) TestEmailConfig(c *gin.Context) {
 	if result.Success {
 		response.Success(c, result.Message, nil)
 	} else {
-		response.InternalServerError(c, result.Message, result.Error)
+		ctx.Logger.WithError(result.Error).Error("Failed to test email config")
+		response.InternalServerError(c, "邮件测试失败", nil)
 	}
 }
 
